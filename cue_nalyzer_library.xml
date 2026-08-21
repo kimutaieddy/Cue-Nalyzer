@@ -1,8 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <DJ_PLAYLISTS Version="1.0.0">
   <PRODUCT Name="rekordbox" Version="6.8.0" Company="Pioneer DJ"/>
-  <COLLECTION Entries="1">
-    <TRACK TrackID="1" Name="Ngixolele" Artist="Busta 929/Boohle" Album="Umsebenzi Wethu, Vol. 2" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="377" DiscNumber="1" TrackNumber="1" Year="2021" AverageBpm="152.00" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 10B" Tonality="10B" Location="file://localhost/D:/spotify_downloder/2019%20-%202021%20amapiano/Busta%20929%20-%20Ngixolele.mp3">
+  <COLLECTION Entries="5">
+    <TRACK TrackID="1" Name="Angisho Guys" Artist="Cassper Nyovest/Lady Du" Album="Sweet And Short 2.0" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="315" DiscNumber="1" TrackNumber="1" Year="2021" AverageBpm="112.35" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 8A" Tonality="8A" Location="file://localhost/D:/spotify_downloder/2019%20-%202021%20amapiano/Cassper%20Nyovest%20-%20Angisho%20Guys.mp3">
+      <TEMPO Inizio="0.116" Bpm="112.35" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Start" Type="0" Start="0.120" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="31.500" Num="1" Red="255" Green="0" Blue="170"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="169.780" Num="2" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="288.950" Num="3" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="2" Name="Superman" Artist="Black Coffee" Album="Afro House" Genre="Afro House" Kind="MP3 File" Size="5242880" TotalTime="433" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="123.05" DateAdded="2026-08-21" BitRate="320" SampleRate="44100" Comments="Cue Nalyzer | Afro House | 4B" Tonality="4B" Location="file://localhost/D:/spotify_downloder/Afro%20House/Black%20Coffee%20-%20Superman.mp3">
+      <TEMPO Inizio="1.950" Bpm="123.05" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Start" Type="0" Start="1.950" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="33.030" Num="1" Red="255" Green="0" Blue="170"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="404.610" Num="2" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="3" Name="SDUDLA No Slenda" Artist="Busta 929/Mgiftoz SA" Album="Undisputed" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="380" DiscNumber="1" TrackNumber="1" Year="2021" AverageBpm="152.00" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 3A" Tonality="3A" Location="file://localhost/D:/spotify_downloder/2019%20-%202021%20amapiano/Busta%20929%20-%20SDUDLA%20No%20Slenda.mp3">
+      <TEMPO Inizio="0.418" Bpm="152.00" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Start" Type="0" Start="0.420" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="28.520" Num="1" Red="255" Green="0" Blue="170"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="348.580" Num="2" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="4" Name="Risasekile" Artist="Aymos/Mas Musiq/TO Starquality" Album="Yimi Lo" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="345" DiscNumber="1" TrackNumber="1" Year="2021" AverageBpm="112.35" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 4A" Tonality="4A" Location="file://localhost/D:/spotify_downloder/2019%20-%202021%20amapiano/Aymos%20-%20Risasekile.mp3">
+      <TEMPO Inizio="1.695" Bpm="112.35" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Start" Type="0" Start="1.700" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="67.020" Num="1" Red="255" Green="0" Blue="170"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="290.550" Num="2" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="307.550" Num="3" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="5" Name="Ngixolele" Artist="Busta 929/Boohle" Album="Umsebenzi Wethu, Vol. 2" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="377" DiscNumber="1" TrackNumber="1" Year="2021" AverageBpm="152.00" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 10B" Tonality="10B" Location="file://localhost/D:/spotify_downloder/2019%20-%202021%20amapiano/Busta%20929%20-%20Ngixolele.mp3">
       <TEMPO Inizio="1.347" Bpm="152.00" Metro="4/4" Battito="1"/>
       <POSITION_MARK Name="Start" Type="0" Start="1.350" Num="0" Red="0" Green="229" Blue="255"/>
       <POSITION_MARK Name="Vocal In" Type="0" Start="31.510" Num="1" Red="255" Green="0" Blue="170"/>
@@ -11,8 +37,12 @@
   </COLLECTION>
   <PLAYLISTS>
     <NODE Type="0" Name="ROOT">
-      <NODE Name="Cue Nalyzer Master Collection" Type="1" KeyType="0" Entries="1">
+      <NODE Name="Cue Nalyzer Master Collection" Type="1" KeyType="0" Entries="5">
         <TRACK Key="1"/>
+        <TRACK Key="2"/>
+        <TRACK Key="3"/>
+        <TRACK Key="4"/>
+        <TRACK Key="5"/>
       </NODE>
     </NODE>
   </PLAYLISTS>
