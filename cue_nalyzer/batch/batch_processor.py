@@ -11,6 +11,7 @@ from cue_nalyzer.core.cache import AnalysisCache
 from cue_nalyzer.core.config import Config
 from cue_nalyzer.core.models import TrackAnalysis
 from cue_nalyzer.export.rekordbox_xml import RekordboxXMLExporter
+from cue_nalyzer.rekordbox.db_integrator import RekordboxDBIntegrator
 
 
 @dataclass
@@ -23,6 +24,8 @@ class BatchResult:
     analyses: List[TrackAnalysis] = field(default_factory=list)
     failed_files: List[str] = field(default_factory=list)
     rekordbox_xml_path: Optional[str] = None
+    rekordbox_db_synced: bool = False
+    rekordbox_db_message: Optional[str] = None
 
 
 class BatchProcessor:
@@ -35,6 +38,7 @@ class BatchProcessor:
         self.cache = AnalysisCache(self.config)
         self.loader = AudioLoader(self.config)
         self.rekordbox_exporter = RekordboxXMLExporter(self.config)
+        self.rekordbox_db = RekordboxDBIntegrator(self.config)
         # Default workers: half of CPU count or min 2 to keep system responsive
         cpu = os.cpu_count() or 4
         self.max_workers = max_workers or max(1, min(4, cpu // 2))
@@ -122,6 +126,12 @@ class BatchProcessor:
             
             # Also update global master library XML
             self.rekordbox_exporter.sync_master_library(self.cache.list_all_tracks())
+
+        # 4. Directly synchronize with Rekordbox Master DB (master.db)
+        if result.analyses:
+            db_res = self.rekordbox_db.sync_analyses_to_rekordbox(result.analyses)
+            result.rekordbox_db_synced = db_res.get("success", False)
+            result.rekordbox_db_message = db_res.get("message", "")
 
         return result
 

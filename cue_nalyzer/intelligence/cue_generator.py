@@ -1,4 +1,4 @@
-"""Intelligent, genre-aware, non-redundant DJ Cue Point placement and ranking."""
+"""Intelligent, genre-aware DJ Cue Point placement targeting 5+ meaningful performance landmarks."""
 
 from typing import List, Optional
 import numpy as np
@@ -18,20 +18,20 @@ from cue_nalyzer.core.models import (
 
 class CueGenerator:
     """
-    Generates non-redundant, musically justified DJ cue points strictly aligned
-    to musical phrasing and adapted to genre context.
+    Generates prioritized, non-redundant DJ Cue points targeting at least 5
+    distinct, musically justified landmarks per suitable track across genres.
     """
 
-    # Performance Pad Colors for CDJs / Rekordbox
+    # Pioneer CDJ / Rekordbox Color Palette
     COLOR_START = "#00E5FF"        # Cyan (Track Start)
-    COLOR_GROOVE = "#00FF7F"       # Spring Green (Groove / Bass in)
+    COLOR_GROOVE = "#00FF7F"       # Spring Green (Groove / Bass In)
     COLOR_DROP = "#FF0055"         # Crimson / Bright Red (Peak Drop)
     COLOR_BREAKDOWN = "#FFAA00"    # Golden Orange (Breakdown)
+    COLOR_BUILDUP = "#FFD700"      # Yellow / Gold (Build-up)
     COLOR_VOCAL_IN = "#FF00AA"     # Magenta / Pink (Vocal Entrance)
-    COLOR_VOCAL_OUT = "#0077FF"    # Blue (Vocal Exit)
+    COLOR_VOCAL_OUT = "#0077FF"    # Blue (Vocal Exit / Blend Window)
     COLOR_MIX_OUT = "#FF8800"      # Warm Amber (Outro Mix-Out)
-    COLOR_LOOP = "#A6FF00"         # Lime Green (Mid-track Loop)
-    COLOR_SECONDARY_DROP = "#9D00FF"  # Electric Purple (Drop 2)
+    COLOR_SECONDARY_DROP = "#9D00FF"  # Electric Purple (Drop 2 / Re-Drop)
 
     def __init__(self, config: Optional[Config] = None):
         self.config = config or Config()
@@ -45,8 +45,8 @@ class CueGenerator:
         genre: GenrePrediction,
     ) -> List[DJCuePoint]:
         """
-        Derive high-conviction, non-redundant DJ Cue points across track timeline.
-        Cue A is guaranteed to be the True Musical Track Start.
+        Derive prioritized DJ Cue points across track timeline.
+        Targets 5+ high-conviction cues where track structure supports it.
         """
         downbeats = beat_grid.downbeat_times
         if not downbeats:
@@ -60,48 +60,43 @@ class CueGenerator:
         # 1. CUE A: TRUE MUSICAL TRACK START (Bar 1, Beat 1)
         # =========================================================================
         track_start_time = downbeats[0]
-        start_desc = (
-            f"Track start at Bar 1 ({self._format_time(track_start_time)}). "
-            "Primary DJ cue point to launch the track on phrase beat 1."
+        candidates.append(
+            DJCuePoint(
+                cue_id="cue_start",
+                timestamp=round(track_start_time, 2),
+                bar_number=1,
+                beat_number=1,
+                cue_type=CueType.SAFE_MIX_IN,
+                label="Start",
+                confidence=0.99,
+                confidence_label="HIGH",
+                color_hex=self.COLOR_START,
+                reasoning=(
+                    f"Track start at Bar 1 ({self._format_time(track_start_time)}). "
+                    "Primary DJ cue point to launch track playback on phrase beat 1."
+                ),
+                musical_evidence=MusicalEvidence(
+                    energy_delta=0.0,
+                    bass_activity=0.40,
+                    rhythmic_density=0.50,
+                    vocal_presence=0.0,
+                    phrase_aligned=True,
+                    confidence_factors={"phrase_alignment": 1.0},
+                ),
+                suggested_use="Primary launch point for beatmatching and starting the track.",
+                hot_cue_index=1,
+            )
         )
 
-        cue_start = DJCuePoint(
-            cue_id="cue_start",
-            timestamp=round(track_start_time, 2),
-            bar_number=1,
-            beat_number=1,
-            cue_type=CueType.SAFE_MIX_IN,
-            label="Start",
-            confidence=0.99,
-            confidence_label="HIGH",
-            color_hex=self.COLOR_START,
-            reasoning=start_desc,
-            musical_evidence=MusicalEvidence(
-                energy_delta=0.0,
-                bass_activity=0.40,
-                rhythmic_density=0.50,
-                vocal_presence=0.0,
-                phrase_aligned=True,
-                confidence_factors={"phrase_alignment": 1.0},
-            ),
-            suggested_use="Primary launch point for beatmatching and starting the track.",
-            hot_cue_index=1,
-        )
-        candidates.append(cue_start)
-
         # =========================================================================
-        # 2. MAIN GROOVE ENTRY (Only if distinct from Track Start)
+        # 2. MAIN GROOVE ENTRY / BEAT IN (Bar 9, 17, or 33)
         # =========================================================================
-        # If the track starts with an atmospheric or drumless intro, find where the full kick/bass begins
         groove_seg = next(
             (s for s in structure if s.label in [SectionType.GROOVE, SectionType.VERSE] and s.start_bar >= 9 and s.start_time < 90.0),
             None,
         )
-        # Check if energy/bass rises noticeably after Bar 1
         if groove_seg and groove_seg.start_bar >= 9:
-            # Only add if at least 8 bars from start
             groove_label = "Log-Drum In" if genre.primary_genre == "Amapiano" else "Groove In"
-            groove_color = self.COLOR_GROOVE
             candidates.append(
                 DJCuePoint(
                     cue_id="cue_groove",
@@ -110,31 +105,60 @@ class CueGenerator:
                     beat_number=1,
                     cue_type=CueType.MIX_IN,
                     label=groove_label,
-                    confidence=0.92,
+                    confidence=0.93,
                     confidence_label="HIGH",
-                    color_hex=groove_color,
+                    color_hex=self.COLOR_GROOVE,
                     reasoning=(
                         f"Main beat & bass groove establishes at Bar {groove_seg.start_bar} ({self._format_time(groove_seg.start_time)}). "
-                        "Full low-end drive active; safe transition marker."
+                        "Full low-end drive active; safe transition landmark."
                     ),
                     musical_evidence=MusicalEvidence(
-                        energy_delta=0.50,
-                        bass_activity=0.75,
-                        rhythmic_density=0.80,
+                        energy_delta=0.55,
+                        bass_activity=0.78,
+                        rhythmic_density=0.82,
                         vocal_presence=groove_seg.vocal_presence,
                         phrase_aligned=True,
-                        confidence_factors={"bass_entry": 0.92},
+                        confidence_factors={"bass_entry": 0.94},
                     ),
-                    suggested_use="Start fading volume or unmuting lows on incoming mix as groove kicks in.",
+                    suggested_use="Start fading volume or unmuting bass on incoming mix as groove kicks in.",
                 )
             )
+        elif total_bars >= 32:
+            # If track starts with full drums from Bar 1, mark 16-bar phrase evolution (Bar 17)
+            bar_17_idx = 16
+            if bar_17_idx < len(downbeats):
+                candidates.append(
+                    DJCuePoint(
+                        cue_id="cue_phrase_17",
+                        timestamp=round(downbeats[bar_17_idx], 2),
+                        bar_number=17,
+                        beat_number=1,
+                        cue_type=CueType.MIX_IN,
+                        label="Phrase 17",
+                        confidence=0.88,
+                        confidence_label="HIGH",
+                        color_hex=self.COLOR_GROOVE,
+                        reasoning=(
+                            f"16-bar phrase progression at Bar 17 ({self._format_time(downbeats[bar_17_idx])}). "
+                            "Rhythm layers expand; standard DJ transition marker."
+                        ),
+                        musical_evidence=MusicalEvidence(
+                            energy_delta=0.30,
+                            bass_activity=0.65,
+                            rhythmic_density=0.70,
+                            vocal_presence=0.1,
+                            phrase_aligned=True,
+                            confidence_factors={"phrase_16b": 0.90},
+                        ),
+                        suggested_use="Standard 16-bar mix-in transition point.",
+                    )
+                )
 
         # =========================================================================
         # 3. FIRST VOCAL ENTRANCE (Vocal In)
         # =========================================================================
         if vocals.vocal_segments:
             first_vocal = vocals.vocal_segments[0]
-            # Must be at least Bar 9 or later
             if first_vocal.start_bar >= 9:
                 candidates.append(
                     DJCuePoint(
@@ -144,7 +168,7 @@ class CueGenerator:
                         beat_number=1,
                         cue_type=CueType.VOCAL_IN,
                         label="Vocal In",
-                        confidence=0.90,
+                        confidence=0.91,
                         confidence_label="HIGH",
                         color_hex=self.COLOR_VOCAL_IN,
                         reasoning=(
@@ -157,7 +181,7 @@ class CueGenerator:
                             rhythmic_density=0.60,
                             vocal_presence=first_vocal.intensity,
                             phrase_aligned=True,
-                            confidence_factors={"formant_detection": 0.90},
+                            confidence_factors={"formant_detection": 0.92},
                         ),
                         suggested_use="Complete incoming blend or fade out previous vocal before this bar.",
                     )
@@ -176,7 +200,7 @@ class CueGenerator:
                     beat_number=1,
                     cue_type=CueType.BREAKDOWN,
                     label="Breakdown",
-                    confidence=0.89,
+                    confidence=0.90,
                     confidence_label="HIGH",
                     color_hex=self.COLOR_BREAKDOWN,
                     reasoning=(
@@ -189,14 +213,14 @@ class CueGenerator:
                         rhythmic_density=0.20,
                         vocal_presence=breakdown_seg.vocal_presence,
                         phrase_aligned=True,
-                        confidence_factors={"energy_dip": 0.90},
+                        confidence_factors={"energy_dip": 0.91},
                     ),
                     suggested_use="Use the atmospheric space to tease the incoming track or execute a harmonic blend.",
                 )
             )
 
         # =========================================================================
-        # 5. MAIN DROP / PEAK RELEASE
+        # 5. MAIN DROP / CLIMAX
         # =========================================================================
         drop_seg = next((s for s in structure if s.label == SectionType.DROP), None)
         if drop_seg and drop_seg.start_bar >= 17:
@@ -209,7 +233,7 @@ class CueGenerator:
                     beat_number=1,
                     cue_type=CueType.DROP,
                     label=drop_label,
-                    confidence=0.95,
+                    confidence=0.96,
                     confidence_label="HIGH",
                     color_hex=self.COLOR_DROP,
                     reasoning=(
@@ -218,7 +242,7 @@ class CueGenerator:
                     ),
                     musical_evidence=MusicalEvidence(
                         energy_delta=0.85,
-                        bass_activity=0.92,
+                        bass_activity=0.94,
                         rhythmic_density=0.88,
                         vocal_presence=drop_seg.vocal_presence,
                         phrase_aligned=True,
@@ -229,7 +253,7 @@ class CueGenerator:
             )
 
         # =========================================================================
-        # 6. SECONDARY DROP
+        # 6. SECONDARY DROP / RE-DROP
         # =========================================================================
         sec_drop_seg = next((s for s in structure if s.label == SectionType.SECONDARY_DROP), None)
         if sec_drop_seg and sec_drop_seg.start_bar >= 33:
@@ -240,8 +264,8 @@ class CueGenerator:
                     bar_number=sec_drop_seg.start_bar,
                     beat_number=1,
                     cue_type=CueType.DROP,
-                    label="Drop 2",
-                    confidence=0.91,
+                    label="Re-Drop",
+                    confidence=0.92,
                     confidence_label="HIGH",
                     color_hex=self.COLOR_SECONDARY_DROP,
                     reasoning=(
@@ -254,19 +278,18 @@ class CueGenerator:
                         rhythmic_density=0.84,
                         vocal_presence=sec_drop_seg.vocal_presence,
                         phrase_aligned=True,
-                        confidence_factors={"energy_jump": 0.90},
+                        confidence_factors={"energy_jump": 0.92},
                     ),
                     suggested_use="Second energy peak for double-drop or set escalation.",
                 )
             )
 
         # =========================================================================
-        # 7. VOCAL EXIT (Only if at least 16 bars before outro)
+        # 7. VOCAL EXIT / INSTRUMENTAL BLEND WINDOW
         # =========================================================================
         if vocals.vocal_segments and len(vocals.vocal_segments) > 0:
             last_vocal = vocals.vocal_segments[-1]
-            # Ensure it is well before the outro and at least 20 seconds after preceding cues
-            if (duration_sec - last_vocal.end_time) >= 20.0 and last_vocal.end_bar < total_bars - 16:
+            if (duration_sec - last_vocal.end_time) >= 15.0 and last_vocal.end_bar < total_bars - 8:
                 candidates.append(
                     DJCuePoint(
                         cue_id="cue_vocal_out",
@@ -275,7 +298,7 @@ class CueGenerator:
                         beat_number=1,
                         cue_type=CueType.VOCAL_OUT,
                         label="Vocal Out",
-                        confidence=0.86,
+                        confidence=0.88,
                         confidence_label="HIGH",
                         color_hex=self.COLOR_VOCAL_OUT,
                         reasoning=(
@@ -288,7 +311,7 @@ class CueGenerator:
                             rhythmic_density=0.70,
                             vocal_presence=0.05,
                             phrase_aligned=True,
-                            confidence_factors={"vocal_decay": 0.86},
+                            confidence_factors={"vocal_decay": 0.88},
                         ),
                         suggested_use="Safe moment to introduce incoming vocals or melodic elements.",
                     )
@@ -302,7 +325,6 @@ class CueGenerator:
             mix_out_time = outro_seg.start_time
             mix_out_bar = outro_seg.start_bar
         else:
-            # Default to 16 or 32 bars before the end
             outro_offset_bars = 32 if total_bars >= 80 else 16
             mix_out_bar = max(9, total_bars - outro_offset_bars)
             mix_out_time = downbeats[mix_out_bar - 1] if mix_out_bar <= len(downbeats) else (duration_sec - 30.0)
@@ -315,7 +337,7 @@ class CueGenerator:
                 beat_number=1,
                 cue_type=CueType.SAFE_MIX_OUT,
                 label="Mix Out",
-                confidence=0.93,
+                confidence=0.94,
                 confidence_label="HIGH",
                 color_hex=self.COLOR_MIX_OUT,
                 reasoning=(
@@ -337,11 +359,9 @@ class CueGenerator:
         # =========================================================================
         # CANDIDATE PRUNING, DEDUPLICATION & PHRASE SEPARATION
         # =========================================================================
-        # Sort candidates chronologically
         candidates.sort(key=lambda c: c.timestamp)
 
         pruned_cues: List[DJCuePoint] = []
-        # Minimum separation: 6 bars (~10-15 seconds) to prevent redundant clutter
         min_bar_gap = 6
         min_time_gap_sec = 10.0
 
@@ -354,21 +374,16 @@ class CueGenerator:
             time_gap = cand.timestamp - prev.timestamp
             bar_gap = cand.bar_number - prev.bar_number
 
-            # If cues are too close, resolve conflict based on priority
             if bar_gap < min_bar_gap or time_gap < min_time_gap_sec:
-                # Always preserve Cue A (Start)
                 if prev.cue_id == "cue_start":
-                    # If candidate is right at the start (e.g. duplicate groove at bar 1-4), skip it
                     continue
 
-                # Drop / Vocal In takes priority over generic Groove
                 if "DROP" in cand.cue_type.value and "MIX_IN" in prev.cue_type.value:
-                    pruned_cues[-1] = cand  # Replace generic groove with Drop
+                    pruned_cues[-1] = cand
                 elif "VOCAL_IN" in cand.cue_type.value and "MIX_IN" in prev.cue_type.value:
-                    pruned_cues[-1] = cand  # Replace generic groove with Vocal In
+                    pruned_cues[-1] = cand
                 elif cand.confidence > prev.confidence:
                     pruned_cues[-1] = cand
-                # Otherwise ignore the too-close candidate
                 continue
 
             pruned_cues.append(cand)
@@ -376,7 +391,6 @@ class CueGenerator:
         # Limit to max 8 performance hot cues (Pads A through H)
         final_cues = pruned_cues[:8]
 
-        # Re-assign hot cue indices strictly (1 to N)
         for idx, c in enumerate(final_cues):
             c.hot_cue_index = idx + 1
 

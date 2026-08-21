@@ -17,6 +17,7 @@ from cue_nalyzer.mir.key_detector import KeyDetector
 from cue_nalyzer.mir.rhythm_analyzer import RhythmAnalyzer
 from cue_nalyzer.mir.segmenter import StructuralSegmenter
 from cue_nalyzer.mir.vocal_detector import VocalDetector
+from cue_nalyzer.rekordbox.db_integrator import RekordboxDBIntegrator
 
 
 class AnalyzerEngine:
@@ -36,6 +37,7 @@ class AnalyzerEngine:
         self.cue_generator = CueGenerator(self.config)
         self.dj_reasoner = DJReasoner(self.config)
         self.rekordbox_exporter = RekordboxXMLExporter(self.config)
+        self.rekordbox_db = RekordboxDBIntegrator(self.config)
 
     def analyze_track(self, file_path: str, force_recompute: bool = False) -> TrackAnalysis:
         """
@@ -103,10 +105,16 @@ class AnalyzerEngine:
         # Cache the computed analysis
         self.cache.save_analysis(analysis)
 
-        # Automatically update master Rekordbox XML bridge
+        # Automatically update master Rekordbox XML bridge as fallback
         try:
             all_tracks = self.cache.list_all_tracks()
             self.rekordbox_exporter.sync_master_library(all_tracks)
+        except Exception:
+            pass
+
+        # Directly sync to Rekordbox Master DB (master.db) with safety snapshot
+        try:
+            self.rekordbox_db.sync_analyses_to_rekordbox([analysis])
         except Exception:
             pass
 

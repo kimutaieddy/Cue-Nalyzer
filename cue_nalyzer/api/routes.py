@@ -1,5 +1,6 @@
-"""FastAPI API routes for Cue Nalyzer web studio and batch engine."""
+"""FastAPI API routes for Cue Nalyzer web studio, Windows Explorer dialogs, and Rekordbox direct sync."""
 
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, Response
@@ -10,12 +11,14 @@ from cue_nalyzer.batch.batch_processor import BatchProcessor, BatchResult
 from cue_nalyzer.core.cache import AnalysisCache
 from cue_nalyzer.core.models import TrackAnalysis
 from cue_nalyzer.export.rekordbox_xml import RekordboxXMLExporter
+from cue_nalyzer.rekordbox.db_integrator import RekordboxDBIntegrator
 
 router = APIRouter(prefix="/api")
 engine = AnalyzerEngine()
 cache = AnalysisCache()
 batch_proc = BatchProcessor()
 rekordbox_exporter = RekordboxXMLExporter()
+rekordbox_db = RekordboxDBIntegrator()
 
 
 class AnalyzePathRequest(BaseModel):
@@ -27,6 +30,64 @@ class BatchFolderRequest(BaseModel):
     folder_path: str
     force_recompute: bool = False
 
+
+# =========================================================================
+# NATIVE WINDOWS EXPLORER DIALOG ENDPOINTS
+# =========================================================================
+
+@router.post("/dialog/pick-files")
+def pick_files_dialog() -> Dict[str, Any]:
+    """Launch native Windows File Explorer dialog to multi-select audio tracks."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+
+        filetypes = [
+            ("Audio Files", "*.mp3 *.wav *.flac *.m4a *.aiff *.ogg"),
+            ("MP3 Files", "*.mp3"),
+            ("WAV Files", "*.wav"),
+            ("FLAC Files", "*.flac"),
+            ("All Files", "*.*"),
+        ]
+        selected_files = filedialog.askopenfilenames(
+            title="Cue Nalyzer — Select Audio Tracks for Analysis",
+            filetypes=filetypes,
+        )
+        root.destroy()
+
+        return {"files": list(selected_files)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to launch file dialog: {str(e)}")
+
+
+@router.post("/dialog/pick-folder")
+def pick_folder_dialog() -> Dict[str, Any]:
+    """Launch native Windows File Explorer dialog to select a folder / playlist directory."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+
+        selected_folder = filedialog.askdirectory(
+            title="Cue Nalyzer — Select Playlist / Music Folder",
+        )
+        root.destroy()
+
+        return {"folder": selected_folder or ""}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to launch folder dialog: {str(e)}")
+
+
+# =========================================================================
+# TRACK & BATCH ANALYSIS ENDPOINTS
+# =========================================================================
 
 @router.post("/analyze/path", response_model=TrackAnalysis)
 def analyze_file_path(req: AnalyzePathRequest):
@@ -42,7 +103,7 @@ def analyze_file_path(req: AnalyzePathRequest):
 
 @router.post("/batch")
 def batch_analyze_folder(req: BatchFolderRequest) -> Dict[str, Any]:
-    """Batch analyze a playlist or folder with parallel workers and caching."""
+    """Batch analyze a playlist or folder with worker pool and master.db sync."""
     try:
         res: BatchResult = batch_proc.process_folder(
             req.folder_path,
@@ -55,6 +116,8 @@ def batch_analyze_folder(req: BatchFolderRequest) -> Dict[str, Any]:
             "failed_count": res.failed_count,
             "failed_files": res.failed_files,
             "rekordbox_xml_path": res.rekordbox_xml_path,
+            "rekordbox_db_synced": res.rekordbox_db_synced,
+            "rekordbox_db_message": res.rekordbox_db_message,
         }
     except NotADirectoryError:
         raise HTTPException(status_code=400, detail="Invalid directory path")
@@ -97,9 +160,28 @@ def stream_audio(file_hash: str):
     return FileResponse(file_path, media_type=media_type)
 
 
+# =========================================================================
+# REKORDBOX MASTER DATABASE & DIRECT SYNC ENDPOINTS
+# =========================================================================
+
+@router.get("/rekordbox/db-status")
+def rekordbox_db_status():
+    """Return live status of local Rekordbox master.db connection and backup snapshot count."""
+    return rekordbox_db.get_database_status()
+
+
+@router.post("/rekordbox/sync-master")
+def rekordbox_sync_master():
+    """Directly sync all analyzed library tracks to Rekordbox master.db."""
+    tracks = cache.list_all_tracks()
+    if not tracks:
+        return {"success": False, "message": "No analyzed tracks found in library."}
+    return rekordbox_db.sync_analyses_to_rekordbox(tracks)
+
+
 @router.get("/export/rekordbox")
 def export_rekordbox(track_hash: Optional[str] = None):
-    """Download Pioneer Rekordbox XML bridge."""
+    """Download Pioneer Rekordbox XML bridge (fallback)."""
     if track_hash:
         track = cache.get_analysis_by_hash(track_hash)
         if not track:
@@ -116,19 +198,3 @@ def export_rekordbox(track_hash: Optional[str] = None):
         media_type="application/xml",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
-
-
-@router.get("/rekordbox/bridge-info")
-def rekordbox_bridge_info():
-    """Get status and path of master Rekordbox XML bridge."""
-    master_path = Path.cwd() / RekordboxXMLExporter.DEFAULT_MASTER_XML_NAME
-    return {
-        "master_xml_path": str(master_path.resolve()),
-        "exists": master_path.exists(),
-        "instructions": [
-            "1. Open Rekordbox.",
-            "2. Go to File -> Preferences -> Advanced -> Database.",
-            "3. Under 'rekordbox xml', set the file path to this generated XML file.",
-            "4. In Rekordbox's left sidebar, click 'rekordbox xml' to view and import your analyzed playlists with all Hot Cues on the pads.",
-        ],
-    }

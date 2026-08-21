@@ -1,5 +1,5 @@
 /**
- * Cue Nalyzer — Streamlined DJ Cue Studio Frontend Engine
+ * Cue Nalyzer — Zero-Manual-Step DJ Studio Frontend Engine
  */
 
 let currentAnalysis = null;
@@ -8,26 +8,17 @@ let audio = new Audio();
 let isPlaying = false;
 
 // DOM Elements
-const trackPathInput = document.getElementById("trackPathInput");
-const analyzeBtn = document.getElementById("analyzeBtn");
-const openBatchModalBtn = document.getElementById("openBatchModalBtn");
-const closeBatchModalBtn = document.getElementById("closeBatchModalBtn");
-const batchModal = document.getElementById("batchModal");
-const batchFolderPathInput = document.getElementById("batchFolderPathInput");
-const batchForceRecompute = document.getElementById("batchForceRecompute");
-const startBatchBtn = document.getElementById("startBatchBtn");
-const batchResultContainer = document.getElementById("batchResultContainer");
-const batchStatusText = document.getElementById("batchStatusText");
-const batchProgressStats = document.getElementById("batchProgressStats");
-const batchProgressBar = document.getElementById("batchProgressBar");
-const batchSummaryMsg = document.getElementById("batchSummaryMsg");
+const pickFilesBtn = document.getElementById("pickFilesBtn");
+const pickFolderBtn = document.getElementById("pickFolderBtn");
+const dropOverlay = document.getElementById("dropOverlay");
+const batchProgressBanner = document.getElementById("batchProgressBanner");
+const batchProgressTitle = document.getElementById("batchProgressTitle");
+const batchCurrentTrack = document.getElementById("batchCurrentTrack");
+const batchProgressFraction = document.getElementById("batchProgressFraction");
+const batchProgressFill = document.getElementById("batchProgressFill");
 
-// Rekordbox Modal Elements
-const openRekordboxModalBtn = document.getElementById("openRekordboxModalBtn");
-const closeRekordboxModalBtn = document.getElementById("closeRekordboxModalBtn");
-const rekordboxModal = document.getElementById("rekordboxModal");
-const masterXmlPathInput = document.getElementById("masterXmlPathInput");
-const downloadXmlBtn = document.getElementById("downloadXmlBtn");
+const rekordboxStatusBadge = document.getElementById("rekordboxStatusBadge");
+const rekordboxStatusText = document.getElementById("rekordboxStatusText");
 
 // Library Modal
 const openLibraryModalBtn = document.getElementById("openLibraryModalBtn");
@@ -48,7 +39,6 @@ const displaySwing = document.getElementById("displaySwing");
 const displayCamelot = document.getElementById("displayCamelot");
 const displayKeyName = document.getElementById("displayKeyName");
 const displayOpenKey = document.getElementById("displayOpenKey");
-const displayHarmStability = document.getElementById("displayHarmStability");
 const displayPrimaryGenre = document.getElementById("displayPrimaryGenre");
 const displayGenreConfidence = document.getElementById("displayGenreConfidence");
 const displayVocalRatio = document.getElementById("displayVocalRatio");
@@ -73,8 +63,9 @@ const cueEvidenceList = document.getElementById("cueEvidenceList");
 // Initialize
 window.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
+  setupDragAndDrop();
   fetchLibrary();
-  fetchRekordboxBridgeInfo();
+  checkRekordboxDbStatus();
   resizeCanvas();
   window.addEventListener("resize", () => {
     resizeCanvas();
@@ -83,17 +74,9 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 function setupEventListeners() {
-  analyzeBtn.addEventListener("click", () => {
-    const path = trackPathInput.value.trim();
-    if (path) analyzeTrack(path);
-  });
-
-  trackPathInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const path = trackPathInput.value.trim();
-      if (path) analyzeTrack(path);
-    }
-  });
+  // Native Windows Explorer Dialog Triggers
+  pickFilesBtn.addEventListener("click", openNativeFilesDialog);
+  pickFolderBtn.addEventListener("click", openNativeFolderDialog);
 
   playPauseBtn.addEventListener("click", togglePlayPause);
   stopBtn.addEventListener("click", stopPlayback);
@@ -113,27 +96,275 @@ function setupEventListeners() {
     seekTo(fraction * audio.duration);
   });
 
-  // Modal Handlers
-  openBatchModalBtn.addEventListener("click", () => batchModal.classList.remove("hidden"));
-  closeBatchModalBtn.addEventListener("click", () => batchModal.classList.add("hidden"));
-
-  openRekordboxModalBtn.addEventListener("click", () => rekordboxModal.classList.remove("hidden"));
-  closeRekordboxModalBtn.addEventListener("click", () => rekordboxModal.classList.add("hidden"));
-
   openLibraryModalBtn.addEventListener("click", () => libraryModal.classList.remove("hidden"));
   closeLibraryModalBtn.addEventListener("click", () => libraryModal.classList.add("hidden"));
-
-  downloadXmlBtn.addEventListener("click", () => {
-    window.open("/api/export/rekordbox", "_blank");
-  });
-
-  startBatchBtn.addEventListener("click", runBatchAnalysis);
 
   audio.addEventListener("timeupdate", updatePlayhead);
   audio.addEventListener("ended", () => {
     isPlaying = false;
     playIcon.textContent = "▶ PLAY";
   });
+}
+
+function setupDragAndDrop() {
+  window.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    dropOverlay.classList.remove("hidden");
+  });
+
+  window.addEventListener("dragover", (e) => {
+    e.preventDefault();
+  });
+
+  window.addEventListener("dragleave", (e) => {
+    if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+      dropOverlay.classList.add("hidden");
+    }
+  });
+
+  window.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    dropOverlay.classList.add("hidden");
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    // Filter audio files
+    const audioExts = [".mp3", ".wav", ".flac", ".m4a", ".aiff", ".ogg"];
+    const audioFiles = files.filter((f) => audioExts.some((ext) => f.name.toLowerCase().endsWith(ext)));
+
+    if (audioFiles.length > 0) {
+      // In web apps, file paths may require user selecting via native picker for local absolute paths
+      if (audioFiles[0].path) {
+        // Electron / local shell absolute path available
+        const paths = audioFiles.map((f) => f.path);
+        processSelectedFilesList(paths);
+      } else {
+        // Fallback: prompt native file picker
+        openNativeFilesDialog();
+      }
+    }
+  });
+}
+
+// Native Windows File / Folder Dialog Handlers
+async function openNativeFilesDialog() {
+  try {
+    const res = await fetch("/api/dialog/pick-files", { method: "POST" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.files && data.files.length > 0) {
+      processSelectedFilesList(data.files);
+    }
+  } catch (err) {
+    console.error("File dialog error:", err);
+  }
+}
+
+async function openNativeFolderDialog() {
+  try {
+    const res = await fetch("/api/dialog/pick-folder", { method: "POST" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.folder) {
+      processFolderBatch(data.folder);
+    }
+  } catch (err) {
+    console.error("Folder dialog error:", err);
+  }
+}
+
+async function processSelectedFilesList(paths) {
+  if (paths.length === 1) {
+    // Single track immediate analyze
+    analyzeTrack(paths[0]);
+    return;
+  }
+
+  // Multi-track batch queue
+  batchProgressBanner.classList.remove("hidden");
+  batchProgressTitle.textContent = `Analyzing ${paths.length} Tracks...`;
+
+  let completed = 0;
+  for (let i = 0; i < paths.length; i++) {
+    const p = paths[i];
+    const fileName = p.split(/[\\/]/).pop();
+    batchCurrentTrack.textContent = `(${i + 1}/${paths.length}) ${fileName}`;
+    batchProgressFraction.textContent = `${i + 1} / ${paths.length}`;
+    batchProgressFill.style.width = `${Math.round(((i + 1) / paths.length) * 100)}%`;
+
+    try {
+      const res = await fetch("/api/analyze/path", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_path: p }),
+      });
+      if (res.ok) {
+        const analysis = await res.json();
+        completed++;
+        if (i === 0 || !currentAnalysis) {
+          loadAnalysisData(analysis);
+        }
+      }
+    } catch (e) {
+      console.error("Failed track analysis:", p, e);
+    }
+  }
+
+  batchProgressTitle.textContent = `✓ Finished ${completed} Tracks (Auto-Synced to Rekordbox)`;
+  setTimeout(() => batchProgressBanner.classList.add("hidden"), 3000);
+  fetchLibrary();
+  checkRekordboxDbStatus();
+}
+
+async function processFolderBatch(folderPath) {
+  batchProgressBanner.classList.remove("hidden");
+  batchProgressTitle.textContent = "Scanning and analyzing folder...";
+  batchCurrentTrack.textContent = folderPath;
+  batchProgressFraction.textContent = "Working...";
+  batchProgressFill.style.width = "40%";
+
+  try {
+    const res = await fetch("/api/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder_path: folderPath }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      batchProgressFill.style.width = "100%";
+      batchProgressTitle.textContent = `✓ Batch Complete: ${data.analyzed_count} analyzed, ${data.skipped_count} cached`;
+      batchProgressFraction.textContent = `${data.total_found} tracks`;
+      batchCurrentTrack.textContent = data.rekordbox_db_synced
+        ? "✓ Master Rekordbox Collection Synced!"
+        : "Rekordbox XML Updated";
+      
+      setTimeout(() => batchProgressBanner.classList.add("hidden"), 3500);
+      fetchLibrary();
+      checkRekordboxDbStatus();
+    }
+  } catch (err) {
+    batchProgressTitle.textContent = `Batch Error: ${err.message}`;
+    console.error("Batch error:", err);
+  }
+}
+
+async function checkRekordboxDbStatus() {
+  try {
+    const res = await fetch("/api/rekordbox/db-status");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.available) {
+        rekordboxStatusBadge.className = "flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-mono";
+        rekordboxStatusText.textContent = `Rekordbox DB: ${data.track_count} Tracks (Auto-Sync Active)`;
+      } else {
+        rekordboxStatusBadge.className = "flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-mono";
+        rekordboxStatusText.textContent = "Rekordbox XML Bridge Active";
+      }
+    }
+  } catch (err) {
+    console.error("DB status check failed:", err);
+  }
+}
+
+async function analyzeTrack(path) {
+  pickFilesBtn.disabled = true;
+  pickFilesBtn.innerHTML = `<span>Analyzing...</span>`;
+
+  try {
+    const res = await fetch("/api/analyze/path", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file_path: path }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      alert(`Analysis error: ${errData.detail || "Unknown error"}`);
+      return;
+    }
+
+    const data = await res.json();
+    loadAnalysisData(data);
+    fetchLibrary();
+    checkRekordboxDbStatus();
+  } catch (err) {
+    alert(`Failed to analyze track: ${err.message}`);
+  } finally {
+    pickFilesBtn.disabled = false;
+    pickFilesBtn.innerHTML = `<span>📁 Add Tracks</span>`;
+  }
+}
+
+async function fetchLibrary() {
+  try {
+    const res = await fetch("/api/tracks");
+    if (res.ok) {
+      libraryTracks = await res.json();
+      libCountBadge.textContent = libraryTracks.length;
+      modalLibCount.textContent = libraryTracks.length;
+      renderLibraryTable();
+      if (!currentAnalysis && libraryTracks.length > 0) {
+        loadAnalysisData(libraryTracks[0]);
+      }
+    }
+  } catch (err) {
+    console.error("Failed fetching library:", err);
+  }
+}
+
+function loadAnalysisData(analysis) {
+  currentAnalysis = analysis;
+  const meta = analysis.metadata;
+  const grid = analysis.beat_grid;
+  const key = analysis.key_info;
+  const genre = analysis.genre;
+  const rhythm = analysis.rhythm || { groove_type: "Straight" };
+
+  audio.src = `/api/audio/${meta.file_hash}`;
+  audio.load();
+
+  displayTitle.textContent = meta.title || meta.file_name;
+  displayArtist.textContent = meta.artist || "Unknown Artist";
+  displayDuration.textContent = formatTime(meta.duration_sec);
+  displayBitrate.textContent = meta.bitrate_kbps ? `${meta.bitrate_kbps} kbps` : "320 kbps";
+  totalPlayTime.textContent = formatTime(meta.duration_sec);
+
+  displayBpm.textContent = grid.bpm.toFixed(1);
+  displayGroove.textContent = rhythm.groove_type;
+  displaySwing.textContent = `Swing: ${Math.round(grid.swing_factor * 100)}%`;
+
+  displayCamelot.textContent = key.camelot;
+  displayKeyName.textContent = key.key_name;
+  displayOpenKey.textContent = `OpenKey: ${key.openkey}`;
+
+  displayPrimaryGenre.textContent = genre.primary_genre;
+  displayGenreConfidence.textContent = `${Math.round(genre.primary_confidence * 100)}%`;
+  displayVocalRatio.textContent = `${Math.round(analysis.vocals.vocal_ratio * 100)}%`;
+
+  genreProbBar.innerHTML = "";
+  const colors = ["bg-cyan-400", "bg-indigo-400", "bg-pink-400", "bg-amber-400"];
+  let cIdx = 0;
+  for (const [g, p] of Object.entries(genre.probabilities)) {
+    if (p > 0.05) {
+      const seg = document.createElement("div");
+      seg.className = `h-full ${colors[cIdx % colors.length]}`;
+      seg.style.width = `${p * 100}%`;
+      seg.title = `${g}: ${Math.round(p * 100)}%`;
+      genreProbBar.appendChild(seg);
+      cIdx++;
+    }
+  }
+
+  renderCueEvidence(analysis.cue_points);
+  renderHotCuePads(analysis.cue_points);
+  renderSectionBanners(analysis.structure, meta.duration_sec);
+
+  resizeCanvas();
+  drawWaveform(analysis);
+  drawBeatGrid(analysis);
+  renderCuePins(analysis.cue_points, meta.duration_sec);
 }
 
 function resizeCanvas() {
@@ -153,173 +384,6 @@ function resizeCanvas() {
   ctx2.scale(dpr, dpr);
 }
 
-// API Calls
-async function fetchLibrary() {
-  try {
-    const res = await fetch("/api/tracks");
-    if (res.ok) {
-      libraryTracks = await res.json();
-      libCountBadge.textContent = libraryTracks.length;
-      modalLibCount.textContent = libraryTracks.length;
-      renderLibraryTable();
-      if (!currentAnalysis && libraryTracks.length > 0) {
-        loadAnalysisData(libraryTracks[0]);
-      }
-    }
-  } catch (err) {
-    console.error("Failed fetching library:", err);
-  }
-}
-
-async function fetchRekordboxBridgeInfo() {
-  try {
-    const res = await fetch("/api/rekordbox/bridge-info");
-    if (res.ok) {
-      const data = await res.json();
-      masterXmlPathInput.value = data.master_xml_path;
-    }
-  } catch (err) {
-    console.error("Failed fetching Rekordbox info:", err);
-  }
-}
-
-async function analyzeTrack(path) {
-  analyzeBtn.disabled = true;
-  analyzeBtn.innerHTML = `<span>Analyzing...</span>`;
-
-  try {
-    const res = await fetch("/api/analyze/path", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ file_path: path }),
-    });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      alert(`Analysis error: ${errData.detail || "Unknown error"}`);
-      return;
-    }
-
-    const data = await res.json();
-    loadAnalysisData(data);
-    fetchLibrary();
-  } catch (err) {
-    alert(`Failed to analyze track: ${err.message}`);
-  } finally {
-    analyzeBtn.disabled = false;
-    analyzeBtn.innerHTML = `<span>Analyze Track</span>`;
-  }
-}
-
-async function runBatchAnalysis() {
-  const folder = batchFolderPathInput.value.trim();
-  if (!folder) {
-    alert("Please enter a valid folder path.");
-    return;
-  }
-
-  startBatchBtn.disabled = true;
-  startBatchBtn.textContent = "Processing Batch...";
-  batchResultContainer.classList.remove("hidden");
-  batchStatusText.textContent = "Scanning and analyzing audio files...";
-  batchProgressBar.style.width = "40%";
-
-  try {
-    const res = await fetch("/api/batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        folder_path: folder,
-        force_recompute: batchForceRecompute.checked,
-      }),
-    });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      alert(`Batch error: ${errData.detail || "Failed to process folder"}`);
-      return;
-    }
-
-    const data = await res.json();
-    batchProgressBar.style.width = "100%";
-    batchStatusText.textContent = "✓ Batch Processing Complete";
-    batchProgressStats.textContent = `${data.analyzed_count + data.skipped_count} / ${data.total_found} tracks`;
-    batchSummaryMsg.textContent = `Analyzed: ${data.analyzed_count} | Cached (Skipped): ${data.skipped_count} | Failed: ${data.failed_count}. Rekordbox XML bridge automatically updated!`;
-
-    fetchLibrary();
-    fetchRekordboxBridgeInfo();
-  } catch (err) {
-    alert(`Batch error: ${err.message}`);
-  } finally {
-    startBatchBtn.disabled = false;
-    startBatchBtn.textContent = "Start Batch Analysis";
-  }
-}
-
-function loadAnalysisData(analysis) {
-  currentAnalysis = analysis;
-  const meta = analysis.metadata;
-  const grid = analysis.beat_grid;
-  const key = analysis.key_info;
-  const genre = analysis.genre;
-  const rhythm = analysis.rhythm || { groove_type: "Four-On-The-Floor" };
-  const energy = analysis.energy;
-
-  // Set Audio Source
-  audio.src = `/api/audio/${meta.file_hash}`;
-  audio.load();
-
-  // Populate Meta
-  displayTitle.textContent = meta.title || meta.file_name;
-  displayArtist.textContent = meta.artist || "Unknown Artist";
-  displayDuration.textContent = formatTime(meta.duration_sec);
-  displayBitrate.textContent = meta.bitrate_kbps ? `${meta.bitrate_kbps} kbps` : "320 kbps";
-  totalPlayTime.textContent = formatTime(meta.duration_sec);
-
-  // BPM & Groove
-  displayBpm.textContent = grid.bpm.toFixed(1);
-  displayGroove.textContent = rhythm.groove_type;
-  displaySwing.textContent = `Swing: ${Math.round(grid.swing_factor * 100)}%`;
-
-  // Key
-  displayCamelot.textContent = key.camelot;
-  displayKeyName.textContent = key.key_name;
-  displayOpenKey.textContent = `OpenKey: ${key.openkey}`;
-  displayHarmStability.textContent = `${Math.round(key.harmonic_stability * 100)}%`;
-
-  // Genre
-  displayPrimaryGenre.textContent = genre.primary_genre;
-  displayGenreConfidence.textContent = `${Math.round(genre.primary_confidence * 100)}%`;
-  displayVocalRatio.textContent = `${Math.round(analysis.vocals.vocal_ratio * 100)}%`;
-
-  // Genre Probs
-  genreProbBar.innerHTML = "";
-  const colors = ["bg-cyan-400", "bg-indigo-400", "bg-pink-400", "bg-amber-400"];
-  let cIdx = 0;
-  for (const [g, p] of Object.entries(genre.probabilities)) {
-    if (p > 0.05) {
-      const seg = document.createElement("div");
-      seg.className = `h-full ${colors[cIdx % colors.length]}`;
-      seg.style.width = `${p * 100}%`;
-      seg.title = `${g}: ${Math.round(p * 100)}%`;
-      genreProbBar.appendChild(seg);
-      cIdx++;
-    }
-  }
-
-  // Summary & Cue Evidence
-  renderCueEvidence(analysis.cue_points);
-  renderHotCuePads(analysis.cue_points);
-  renderSectionBanners(analysis.structure, meta.duration_sec);
-
-  // Draw Waveform & Markers
-  resizeCanvas();
-  drawWaveform(analysis);
-  drawBeatGrid(analysis);
-  renderCuePins(analysis.cue_points, meta.duration_sec);
-}
-
-// Waveform & Visuals
 function drawWaveform(analysis) {
   const canvas = waveformCanvas;
   const ctx = canvas.getContext("2d");
@@ -336,7 +400,6 @@ function drawWaveform(analysis) {
 
   const step = w / numPoints;
 
-  // Background subtle gradient
   const grad = ctx.createLinearGradient(0, 0, 0, h);
   grad.addColorStop(0, "#09090b");
   grad.addColorStop(0.5, "#030712");
@@ -344,30 +407,25 @@ function drawWaveform(analysis) {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 
-  // Draw 3-Band Waveform
   for (let i = 0; i < numPoints; i++) {
     const x = i * step;
     const low = wf.low_peaks[i] || 0;
     const mid = wf.mid_peaks[i] || 0;
     const high = wf.high_peaks[i] || 0;
 
-    // High Band (Red/Pink Air)
     const highH = high * halfH * 0.95;
     ctx.fillStyle = "rgba(255, 46, 99, 0.4)";
     ctx.fillRect(x, halfH - highH, step + 0.5, highH * 2);
 
-    // Mid Band (Amber / Gold Mids & Vocals)
     const midH = mid * halfH * 0.85;
     ctx.fillStyle = "rgba(255, 179, 0, 0.6)";
     ctx.fillRect(x, halfH - midH, step + 0.5, midH * 2);
 
-    // Low / Sub Band (Cyan / Blue Kick & Bass Punch)
     const lowH = low * halfH * 0.75;
     ctx.fillStyle = "rgba(0, 229, 255, 0.85)";
     ctx.fillRect(x, halfH - lowH, step + 0.5, lowH * 2);
   }
 
-  // Center line
   ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -386,7 +444,6 @@ function drawBeatGrid(analysis) {
 
   ctx.clearRect(0, 0, w, h);
 
-  // Draw Downbeat lines (Bar 1 Beat 1)
   const downbeats = analysis.beat_grid.downbeat_times;
   downbeats.forEach((t, idx) => {
     const x = (t / duration) * w;
@@ -559,7 +616,6 @@ function renderLibraryTable() {
   });
 }
 
-// Transport & Audio Playback
 function togglePlayPause() {
   if (!currentAnalysis) return;
   if (isPlaying) {
