@@ -19,7 +19,7 @@ class AnalysisCache:
     def _init_db(self):
         """Ensure database table schema exists."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -46,7 +46,7 @@ class AnalysisCache:
 
     def get_analysis_by_hash(self, file_hash: str) -> Optional[TrackAnalysis]:
         """Fetch cached analysis by SHA-256 file hash."""
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT analysis_json FROM track_analyses WHERE file_hash = ?", (file_hash,))
             row = cursor.fetchone()
@@ -58,7 +58,7 @@ class AnalysisCache:
     def get_analysis_by_path(self, file_path: str) -> Optional[TrackAnalysis]:
         """Fetch cached analysis by file path."""
         p_str = str(Path(file_path).resolve())
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT analysis_json FROM track_analyses WHERE file_path = ?", (p_str,))
             row = cursor.fetchone()
@@ -70,7 +70,7 @@ class AnalysisCache:
     def save_analysis(self, analysis: TrackAnalysis):
         """Save or update track analysis in SQLite database."""
         json_data = analysis.model_dump_json()
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -96,7 +96,7 @@ class AnalysisCache:
     def list_all_tracks(self) -> List[TrackAnalysis]:
         """List all analyzed tracks from the database."""
         tracks = []
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT analysis_json FROM track_analyses ORDER BY created_at DESC")
             for row in cursor.fetchall():
@@ -132,7 +132,7 @@ class AnalysisCache:
             params.append(camelot_key)
 
         tracks = []
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=30.0) as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             for row in cursor.fetchall():

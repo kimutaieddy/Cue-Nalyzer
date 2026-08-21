@@ -87,27 +87,31 @@ class BatchProcessor:
 
             to_analyze.append(file_p)
 
-        # 2. Process remaining tracks with worker pool
+        # 2. Process remaining tracks with concurrent worker pool
         if to_analyze:
             engine = AnalyzerEngine(self.config)
-            
-            # Using ThreadPoolExecutor / sequential analysis
-            for i, file_p in enumerate(to_analyze, start=result.skipped_count + 1):
-                try:
-                    if progress_callback:
-                        progress_callback(i, total, file_p.name, "ANALYZING", None)
-                    
-                    analysis = engine.analyze_track(str(file_p), force_recompute=force_recompute)
-                    result.analyzed_count += 1
-                    result.analyses.append(analysis)
-                    
-                    if progress_callback:
-                        progress_callback(i, total, file_p.name, "COMPLETED", analysis)
-                except Exception as e:
-                    result.failed_count += 1
-                    result.failed_files.append(f"{file_p.name}: {str(e)}")
-                    if progress_callback:
-                        progress_callback(i, total, file_p.name, f"FAILED ({str(e)})", None)
+            completed_so_far = result.skipped_count
+
+            def _analyze_single(fp: Path):
+                return fp, engine.analyze_track(str(fp), force_recompute=force_recompute)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                future_to_file = {executor.submit(_analyze_single, fp): fp for fp in to_analyze}
+
+                for future in concurrent.futures.as_completed(future_to_file):
+                    fp = future_to_file[future]
+                    completed_so_far += 1
+                    try:
+                        _, analysis = future.result()
+                        result.analyzed_count += 1
+                        result.analyses.append(analysis)
+                        if progress_callback:
+                            progress_callback(completed_so_far, total, fp.name, "COMPLETED", analysis)
+                    except Exception as e:
+                        result.failed_count += 1
+                        result.failed_files.append(f"{fp.name}: {str(e)}")
+                        if progress_callback:
+                            progress_callback(completed_so_far, total, fp.name, f"FAILED ({str(e)})", None)
 
         # 3. Synchronize Rekordbox XML bridge
         if auto_sync_rekordbox and result.analyses:
