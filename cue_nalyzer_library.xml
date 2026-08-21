@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DJ_PLAYLISTS Version="1.0.0">
+  <PRODUCT Name="rekordbox" Version="6.8.0" Company="Pioneer DJ"/>
+  <COLLECTION Entries="14">
+    <TRACK TrackID="1" Name="Pepereza" Artist="Beast Rsa/Zuma/Reece Madlisa/Busta 929/DJ Tira" Album="Mix Breed" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="341" DiscNumber="1" TrackNumber="1" Year="2021" AverageBpm="112.35" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 8B" Tonality="8B" Location="file://localhost/D:/spotify_downloder/2019%20-%202021%20amapiano/Beast%20Rsa%20-%20Pepereza.mp3">
+      <TEMPO Inizio="1.347" Bpm="112.35" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Start" Type="0" Start="1.350" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="29.010" Num="1" Red="255" Green="0" Blue="170"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="287.700" Num="2" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="2" Name="Risasekile" Artist="Aymos/Mas Musiq/TO Starquality" Album="Yimi Lo" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="345" DiscNumber="1" TrackNumber="1" Year="2021" AverageBpm="112.35" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 4A" Tonality="4A" Location="file://localhost/D:/spotify_downloder/2019%20-%202021%20amapiano/Aymos%20-%20Risasekile.mp3">
+      <TEMPO Inizio="1.695" Bpm="112.35" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Start" Type="0" Start="1.700" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="67.020" Num="1" Red="255" Green="0" Blue="170"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="290.550" Num="2" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="307.550" Num="3" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="3" Name="I Adore You" Artist="HUGEL/Topic/Arash/Daecolm" Album="Afro House" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="214" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="117.45" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 9A" Tonality="9A" Location="file://localhost/D:/spotify_downloder/Afro%20House/HUGEL%20-%20I%20Adore%20You.mp3">
+      <TEMPO Inizio="2.786" Bpm="117.45" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="2.790" Num="0" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="2.790" Num="1" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="18.000" Num="2" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Main Drop" Type="0" Start="34.780" Num="3" Red="255" Green="0" Blue="85"/>
+      <POSITION_MARK Name="Drop 2" Type="0" Start="82.780" Num="4" Red="157" Green="0" Blue="255"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="114.820" Num="5" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="163.310" Num="6" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="4" Name="Ya Rayah (Win Msafer)" Artist="Francis Mercier/Rachid Taha/Clyde P" Album="Afro House" Genre="Afro House" Kind="MP3 File" Size="5242880" TotalTime="183" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="123.05" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Afro House | 10B" Tonality="10B" Location="file://localhost/D:/spotify_downloder/Afro%20House/Francis%20Mercier%20-%20Ya%20Rayah%20%28Win%20Msafer%29.mp3">
+      <TEMPO Inizio="1.904" Bpm="123.05" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="0.000" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="1.900" Num="1" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="1.900" Num="2" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="80.480" Num="3" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="142.940" Num="4" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="5" Name="Egyptian Sun" Artist="Francis Mercier/Kiesza" Album="Afro House" Genre="Afro House" Kind="MP3 File" Size="5242880" TotalTime="263" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="123.05" DateAdded="2026-08-21" BitRate="320" SampleRate="44100" Comments="Cue Nalyzer | Afro House | 5A" Tonality="5A" Location="file://localhost/D:/spotify_downloder/Afro%20House/Francis%20Mercier%20-%20Egyptian%20Sun.mp3">
+      <TEMPO Inizio="7.454" Bpm="123.05" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="0.500" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="7.450" Num="1" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="7.450" Num="2" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="133.350" Num="3" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="227.040" Num="4" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="6" Name="Humelela" Artist="Darque/Papany" Album="Afro House" Genre="Hip-Hop / R&amp;B" Kind="MP3 File" Size="5242880" TotalTime="390" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="95.70" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Hip-Hop / R&amp;B | 11A" Tonality="11A" Location="file://localhost/D:/spotify_downloder/Afro%20House/Darque%20-%20Humelela.mp3">
+      <TEMPO Inizio="0.720" Bpm="95.70" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="0.500" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="0.720" Num="1" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="0.720" Num="2" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="205.660" Num="3" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="345.580" Num="4" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="7" Name="Emaweni" Artist="Darque/SYKES" Album="Afro House" Genre="Hip-Hop / R&amp;B" Kind="MP3 File" Size="5242880" TotalTime="378" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="95.70" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Hip-Hop / R&amp;B | 2A" Tonality="2A" Location="file://localhost/D:/spotify_downloder/Afro%20House/Darque%20-%20Emaweni.mp3">
+      <TEMPO Inizio="1.834" Bpm="95.70" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="1.830" Num="0" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="1.830" Num="1" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="11.510" Num="2" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="45.190" Num="3" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="337.430" Num="4" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="8" Name="Fefe (U Lost)" Artist="Caiiro/Fifi" Album="Afro House" Genre="Hip-Hop / R&amp;B" Kind="MP3 File" Size="5242880" TotalTime="376" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="99.38" DateAdded="2026-08-21" BitRate="320" SampleRate="44100" Comments="Cue Nalyzer | Hip-Hop / R&amp;B | 2B" Tonality="2B" Location="file://localhost/D:/spotify_downloder/Afro%20House/Caiiro%20-%20Fefe%20%28U%20Lost%29.mp3">
+      <TEMPO Inizio="1.207" Bpm="99.38" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="1.210" Num="0" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="1.210" Num="1" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="58.540" Num="2" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="82.250" Num="3" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="345.160" Num="4" Red="255" Green="136" Blue="0"/>
+      <POSITION_MARK Name="Vocal Out" Type="0" Start="348.240" Num="5" Red="0" Green="119" Blue="255"/>
+    </TRACK>
+    <TRACK TrackID="9" Name="Noma Engenani" Artist="BOKKIEULT/Lelow B/BON" Album="Afro House" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="325" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="117.45" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 2A" Tonality="2A" Location="file://localhost/D:/spotify_downloder/Afro%20House/BOKKIEULT%20-%20Noma%20Engenani.mp3">
+      <TEMPO Inizio="0.534" Bpm="117.45" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="0.530" Num="0" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="0.530" Num="1" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="33.500" Num="2" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="298.610" Num="3" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="10" Name="Wish You Were Here" Artist="Black Coffee/Msaki" Album="Afro House" Genre="Afro House" Kind="MP3 File" Size="5242880" TotalTime="390" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="120.19" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Afro House | 8B" Tonality="8B" Location="file://localhost/D:/spotify_downloder/Afro%20House/Black%20Coffee%20-%20Wish%20You%20Were%20Here.mp3">
+      <TEMPO Inizio="0.116" Bpm="120.19" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="0.120" Num="0" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="0.120" Num="1" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="11.500" Num="2" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="352.130" Num="3" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="11" Name="Learning To Love" Artist="Antdot/Maz (BR)/Noah Henderson" Album="Afro House" Genre="Afro House" Kind="MP3 File" Size="5242880" TotalTime="255" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="123.05" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Afro House | 8A" Tonality="8A" Location="file://localhost/D:/spotify_downloder/Afro%20House/Antdot%20-%20Learning%20To%20Love.mp3">
+      <TEMPO Inizio="0.766" Bpm="123.05" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="0.500" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="0.770" Num="1" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="0.770" Num="2" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Breakdown" Type="0" Start="63.740" Num="3" Red="255" Green="170" Blue="0"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="205.380" Num="4" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="12" Name="Agolo - Shimza Remix" Artist="Angelique Kidjo/Shimza" Album="Afro House" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="343" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="117.45" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 7A" Tonality="7A" Location="file://localhost/D:/spotify_downloder/Afro%20House/Angelique%20Kidjo%20-%20Agolo%20-%20Shimza%20Remix.mp3">
+      <TEMPO Inizio="1.300" Bpm="117.45" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="1.000" Num="0" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="1.300" Num="1" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="1.300" Num="2" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Vocal Out" Type="0" Start="286.000" Num="3" Red="0" Green="119" Blue="255"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="310.710" Num="4" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="13" Name="Muyè - Black Coffee And Nduduzo Makhathini Journey Mix" Artist="Adam Port/&amp;ME/Rampa" Album="Afro House" Genre="Amapiano" Kind="MP3 File" Size="5242880" TotalTime="582" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="117.45" DateAdded="2026-08-21" BitRate="320" SampleRate="48000" Comments="Cue Nalyzer | Amapiano | 8A" Tonality="8A" Location="file://localhost/D:/spotify_downloder/Afro%20House/Adam%20Port%20-%20Muy%C3%A8%20-%20Black%20Coffee%20And%20Nduduzo%20Makhathini%20Journey%20Mix.mp3">
+      <TEMPO Inizio="1.091" Bpm="117.45" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="33.090" Num="0" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="33.090" Num="1" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="78.550" Num="2" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Main Drop" Type="0" Start="97.080" Num="3" Red="255" Green="0" Blue="85"/>
+      <POSITION_MARK Name="Drop 2" Type="0" Start="129.080" Num="4" Red="157" Green="0" Blue="255"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="545.090" Num="5" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+    <TRACK TrackID="14" Name="Superman" Artist="Black Coffee" Album="Afro House" Genre="Afro House" Kind="MP3 File" Size="5242880" TotalTime="433" DiscNumber="1" TrackNumber="1" Year="2024" AverageBpm="123.05" DateAdded="2026-08-21" BitRate="320" SampleRate="44100" Comments="Cue Nalyzer | Afro House | 4B" Tonality="4B" Location="file://localhost/D:/spotify_downloder/Afro%20House/Black%20Coffee%20-%20Superman.mp3">
+      <TEMPO Inizio="1.950" Bpm="123.05" Metro="4/4" Battito="1"/>
+      <POSITION_MARK Name="Mix In" Type="0" Start="1.950" Num="0" Red="0" Green="255" Blue="127"/>
+      <POSITION_MARK Name="8-Bar Loop" Type="0" Start="1.950" Num="1" Red="166" Green="255" Blue="0"/>
+      <POSITION_MARK Name="Vocal In" Type="0" Start="33.030" Num="2" Red="0" Green="229" Blue="255"/>
+      <POSITION_MARK Name="Vocal Out" Type="0" Start="403.360" Num="3" Red="0" Green="119" Blue="255"/>
+      <POSITION_MARK Name="Mix Out" Type="0" Start="404.610" Num="4" Red="255" Green="136" Blue="0"/>
+    </TRACK>
+  </COLLECTION>
+  <PLAYLISTS>
+    <NODE Type="0" Name="ROOT">
+      <NODE Name="Cue Nalyzer Master Collection" Type="1" KeyType="0" Entries="14">
+        <TRACK Key="1"/>
+        <TRACK Key="2"/>
+        <TRACK Key="3"/>
+        <TRACK Key="4"/>
+        <TRACK Key="5"/>
+        <TRACK Key="6"/>
+        <TRACK Key="7"/>
+        <TRACK Key="8"/>
+        <TRACK Key="9"/>
+        <TRACK Key="10"/>
+        <TRACK Key="11"/>
+        <TRACK Key="12"/>
+        <TRACK Key="13"/>
+        <TRACK Key="14"/>
+      </NODE>
+    </NODE>
+  </PLAYLISTS>
+</DJ_PLAYLISTS>
