@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cue Nalyzer — DJ Music Intelligence Studio</title>
+  <title>Cue Nalyzer — Intelligent DJ Cue Studio</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css">
@@ -23,25 +23,28 @@
         <h1 class="text-lg font-black tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-pink-400">
           Cue Nalyzer
         </h1>
-        <p class="text-[10px] text-zinc-400 font-mono tracking-tight uppercase">Local DJ Music Intelligence & Cue Studio</p>
+        <p class="text-[10px] text-zinc-400 font-mono tracking-tight uppercase">Intelligent DJ Cue & Phrasing Studio</p>
       </div>
     </div>
 
     <!-- Quick Analysis Input Bar -->
     <div class="flex items-center space-x-3 max-w-xl w-full mx-6">
       <div class="relative flex-1">
-        <input id="trackPathInput" type="text" placeholder="Enter audio file path (e.g. D:\spotify_downloder\track.mp3)" 
+        <input id="trackPathInput" type="text" placeholder="Enter audio file path (e.g. D:\music\track.mp3)" 
                class="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg px-3 py-1.5 text-xs font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-cyan-400 transition" />
       </div>
       <button id="analyzeBtn" class="bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-bold px-4 py-1.5 rounded-lg text-xs tracking-wide transition flex items-center space-x-1 shadow-lg shadow-cyan-500/20">
-        <span>Analyze</span>
+        <span>Analyze Track</span>
+      </button>
+      <button id="openBatchModalBtn" class="bg-zinc-800 hover:bg-zinc-700 text-cyan-300 font-medium px-3 py-1.5 rounded-lg text-xs border border-zinc-700 transition flex items-center space-x-1">
+        <span>⚡ Batch Folder</span>
       </button>
     </div>
 
     <!-- Global Actions -->
     <div class="flex items-center space-x-3">
-      <button id="exportRekordboxBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-700 transition flex items-center space-x-1.5">
-        <span>💿 Export Rekordbox XML</span>
+      <button id="openRekordboxModalBtn" class="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-md transition flex items-center space-x-1.5">
+        <span>💿 Rekordbox Sync</span>
       </button>
       <button id="openLibraryModalBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-700 transition">
         📚 Library (<span id="libCountBadge">0</span>)
@@ -58,9 +61,9 @@
       <!-- Track Meta Card -->
       <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between shadow-md">
         <div>
-          <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Now Loaded</span>
+          <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Active Track</span>
           <h2 id="displayTitle" class="text-lg font-bold text-white truncate mt-0.5">Select or Analyze a Track</h2>
-          <p id="displayArtist" class="text-xs text-cyan-400 font-medium truncate">No artist loaded</p>
+          <p id="displayArtist" class="text-xs text-cyan-400 font-medium truncate">No track loaded</p>
         </div>
         <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mt-3 pt-2 border-t border-zinc-800/80">
           <span id="displayDuration">00:00</span>
@@ -108,7 +111,7 @@
           <div class="w-full bg-zinc-800 rounded-full h-1.5 mt-1.5 overflow-hidden flex" id="genreProbBar"></div>
         </div>
         <div class="text-[11px] font-mono text-zinc-400 pt-2 border-t border-zinc-800/80 truncate">
-          Vocal Presence: <span id="displayVocalRatio" class="text-cyan-400">0%</span>
+          Vocal Ratio: <span id="displayVocalRatio" class="text-cyan-400">0%</span>
         </div>
       </div>
 
@@ -121,9 +124,9 @@
       <div class="flex items-center justify-between text-xs font-mono text-zinc-400">
         <div class="flex items-center space-x-2">
           <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
-          <span class="font-bold text-zinc-200">DECK 1 (3-Band Waveform)</span>
+          <span class="font-bold text-zinc-200">3-BAND WAVEFORM & PHRASE GRID</span>
           <span class="text-zinc-600">|</span>
-          <span class="text-[11px]"><span class="text-blue-400">■ Low/Sub</span> <span class="text-amber-400">■ Mids</span> <span class="text-rose-400">■ Highs</span></span>
+          <span class="text-[11px]"><span class="text-cyan-400 font-bold">■ Low/Sub</span> <span class="text-amber-400 font-bold">■ Mids/Vocals</span> <span class="text-rose-400 font-bold">■ Highs</span></span>
         </div>
         <div class="flex items-center space-x-4">
           <span id="currentPlayTime" class="text-cyan-400 font-bold text-sm">00:00.0</span>
@@ -133,7 +136,7 @@
       </div>
 
       <!-- Arrangement Section Banners Strip -->
-      <div id="sectionBannerStrip" class="w-full h-5 bg-zinc-950 rounded-t-md overflow-hidden flex border-b border-zinc-800/50 text-[9px] font-mono font-bold uppercase tracking-wider">
+      <div id="sectionBannerStrip" class="w-full h-6 bg-zinc-950 rounded-t-md overflow-hidden flex border-b border-zinc-800/50 text-[10px] font-mono font-bold uppercase tracking-wider">
         <!-- Injected via JS -->
       </div>
 
@@ -160,13 +163,11 @@
           <button id="stopBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium px-4 py-2 rounded-xl text-xs border border-zinc-700 transition">
             ⏹ STOP
           </button>
-          <button id="zoomInBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-2 rounded-xl text-xs border border-zinc-700 transition">🔍+</button>
-          <button id="zoomOutBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-2 rounded-xl text-xs border border-zinc-700 transition">🔍-</button>
         </div>
 
         <div class="flex items-center space-x-4 text-xs font-mono text-zinc-400">
           <span>Space: <kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-300 border border-zinc-700">Play/Pause</kbd></span>
-          <span>Click Waveform: <kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-300 border border-zinc-700">Seek</kbd></span>
+          <span>Click Waveform: <kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-300 border border-zinc-700">Jump / Seek</kbd></span>
         </div>
       </div>
 
@@ -176,9 +177,9 @@
     <section class="space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-bold tracking-wider uppercase text-zinc-300 flex items-center space-x-2">
-          <span>🎯 Performance Hot Cues & DJ Trigger Pads</span>
+          <span>🎯 Performance Hot Cues (Pads A–H)</span>
         </h3>
-        <span class="text-xs font-mono text-zinc-500">Click any pad to audition & jump immediately</span>
+        <span class="text-xs font-mono text-zinc-500">Pioneer CDJ / Rekordbox Layout — Click any pad to trigger & jump</span>
       </div>
 
       <div id="hotCuePadsGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
@@ -186,78 +187,99 @@
       </div>
     </section>
 
-    <!-- INTELLIGENCE DEEP DIVE & CLASH REASONING -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- DJ CUE POINT REASONING & PHRASE LANDMARKS -->
+    <section class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-md space-y-4">
+      <h3 class="text-sm font-bold text-zinc-200 tracking-wider uppercase flex items-center space-x-2">
+        <span>🧠 Musical Landmarks & Phrased DJ Cue Points</span>
+      </h3>
       
-      <!-- DJ Explainability & Strategy Briefing -->
-      <div class="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-md space-y-4">
-        <h3 class="text-sm font-bold text-zinc-200 tracking-wider uppercase flex items-center space-x-2">
-          <span>🧠 Contextual DJ Intelligence & Evidence</span>
-        </h3>
-        
-        <div id="djSummaryText" class="text-xs leading-relaxed text-zinc-300 bg-zinc-950/60 p-4 rounded-xl border border-zinc-800/80 font-mono whitespace-pre-line">
-          No analysis available yet. Analyze a track above to view musical reasoning.
-        </div>
-
-        <!-- Cue Points Details Accordion / List -->
-        <div class="space-y-2">
-          <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Cue Point Evidence Breakdown</h4>
-          <div id="cueEvidenceList" class="space-y-2 text-xs"></div>
-        </div>
+      <!-- Cue Points Details List -->
+      <div id="cueEvidenceList" class="space-y-2.5 text-xs">
+        <div class="text-zinc-500 font-mono py-4 text-center">Analyze a track to view intelligent cue points.</div>
       </div>
-
-      <!-- DUAL TRACK TRANSITION MATCHER -->
-      <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-md space-y-4 flex flex-col justify-between">
-        <div>
-          <h3 class="text-sm font-bold text-zinc-200 tracking-wider uppercase flex items-center space-x-2">
-            <span>🎛️ Transition Match Advisor</span>
-          </h3>
-          <p class="text-[11px] text-zinc-400 mt-1">Select an incoming track from your library to evaluate mix compatibility.</p>
-
-          <div class="mt-4 space-y-3">
-            <div>
-              <label class="text-[10px] font-mono uppercase text-zinc-500">Incoming Track B</label>
-              <select id="matchTrackBSelect" class="w-full mt-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-400">
-                <option value="">-- Choose Library Track --</option>
-              </select>
-            </div>
-            <button id="runMatchBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs transition">
-              Evaluate Transition
-            </button>
-          </div>
-
-          <!-- Transition Match Result Box -->
-          <div id="transitionResultBox" class="mt-4 hidden bg-zinc-950/80 border border-zinc-800 rounded-xl p-3.5 space-y-2 text-xs font-mono">
-            <div class="flex items-center justify-between">
-              <span class="text-zinc-400">Compatibility:</span>
-              <span id="transScore" class="font-bold text-green-400 text-sm">--/100</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-zinc-400">Harmonic Match:</span>
-              <span id="transHarm" class="font-bold text-indigo-400">--</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-zinc-400">BPM Delta:</span>
-              <span id="transBpm" class="text-yellow-400">--</span>
-            </div>
-            <div class="text-[11px] text-zinc-300 pt-2 border-t border-zinc-800" id="transExplanation"></div>
-          </div>
-        </div>
-
-        <div class="text-[10px] text-zinc-500 font-mono text-center pt-3 border-t border-zinc-800/80">
-          Powered by Camelot Key & Phrased Overlap Analysis
-        </div>
-      </div>
-
     </section>
 
   </main>
+
+  <!-- BATCH FOLDER ANALYSIS MODAL -->
+  <div id="batchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-6">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <span>⚡ Batch Playlist / Folder Analyzer</span>
+        </h3>
+        <button id="closeBatchModalBtn" class="text-zinc-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div class="p-6 space-y-4 font-mono text-xs">
+        <div>
+          <label class="text-[11px] text-zinc-400 block mb-1">Folder Path containing audio tracks:</label>
+          <input id="batchFolderPathInput" type="text" placeholder="D:\spotify_downloder\Afro House" 
+                 class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:outline-none focus:border-cyan-400" />
+        </div>
+        <div class="flex items-center space-x-2">
+          <input type="checkbox" id="batchForceRecompute" class="rounded bg-zinc-950 border-zinc-700 text-cyan-500" />
+          <label for="batchForceRecompute" class="text-zinc-400 text-[11px]">Force recompute (ignore cache)</label>
+        </div>
+        <button id="startBatchBtn" class="w-full bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition">
+          Start Batch Analysis
+        </button>
+
+        <!-- Batch Progress / Result Box -->
+        <div id="batchResultContainer" class="hidden bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-2">
+          <div class="flex justify-between text-zinc-300 font-bold">
+            <span id="batchStatusText">Processing...</span>
+            <span id="batchProgressStats">0 / 0</span>
+          </div>
+          <div class="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+            <div id="batchProgressBar" class="bg-cyan-400 h-full w-0 transition-all duration-300"></div>
+          </div>
+          <p id="batchSummaryMsg" class="text-[11px] text-zinc-400 pt-2"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REKORDBOX SYNC & BRIDGE GUIDE MODAL -->
+  <div id="rekordboxModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-6">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <span>💿 Pioneer Rekordbox Integration Guide</span>
+        </h3>
+        <button id="closeRekordboxModalBtn" class="text-zinc-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div class="p-6 space-y-4 text-xs font-mono text-zinc-300 leading-relaxed">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-2">
+          <span class="text-[10px] text-zinc-500 uppercase tracking-widest">Master Rekordbox XML Bridge Location</span>
+          <div class="flex items-center space-x-2">
+            <input id="masterXmlPathInput" readonly type="text" value="D:\spotify_downloder\Cue Nalyzer\cue_nalyzer_library.xml" 
+                   class="w-full bg-zinc-900 border border-zinc-700/60 rounded px-2.5 py-1.5 text-cyan-300 font-mono text-xs focus:outline-none" />
+            <button id="downloadXmlBtn" class="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded text-xs whitespace-nowrap">
+              Download XML
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="font-bold text-cyan-400 uppercase tracking-wider">How to make your cues appear in Rekordbox:</h4>
+          <ol class="list-decimal list-inside space-y-1.5 text-zinc-300">
+            <li>Open <strong>Rekordbox</strong> on your computer.</li>
+            <li>Go to <strong>File ➔ Preferences ➔ Advanced ➔ Database</strong> tab.</li>
+            <li>Under <strong>rekordbox xml</strong>, set the path to the XML file above.</li>
+            <li>In Rekordbox's left sidebar, click the <strong>rekordbox xml</strong> tree item.</li>
+            <li>Right click your playlist or tracks and select <strong>"Import to Collection"</strong>.</li>
+            <li>All analyzed Hot Cues (A–H) and Beatgrids will now appear on your performance pads!</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- LIBRARY MODAL -->
   <div id="libraryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-6">
     <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
       <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
-        <h3 class="text-base font-bold text-white">📚 Analyzed DJ Music Library</h3>
+        <h3 class="text-base font-bold text-white">📚 Analyzed DJ Library (<span id="modalLibCount">0</span> tracks)</h3>
         <button id="closeLibraryModalBtn" class="text-zinc-400 hover:text-white text-lg">✕</button>
       </div>
       <div class="p-6 flex-1 overflow-y-auto">
@@ -269,7 +291,7 @@
               <th>BPM</th>
               <th>Key</th>
               <th>Genre</th>
-              <th>Duration</th>
+              <th>Cues</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -284,4 +306,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-

@@ -7,6 +7,7 @@ from cue_nalyzer.core.audio_loader import AudioLoader
 from cue_nalyzer.core.cache import AnalysisCache
 from cue_nalyzer.core.config import Config
 from cue_nalyzer.core.models import TrackAnalysis
+from cue_nalyzer.export.rekordbox_xml import RekordboxXMLExporter
 from cue_nalyzer.intelligence.cue_generator import CueGenerator
 from cue_nalyzer.intelligence.dj_reasoner import DJReasoner
 from cue_nalyzer.intelligence.genre_classifier import GenreClassifier
@@ -34,6 +35,7 @@ class AnalyzerEngine:
         self.genre_classifier = GenreClassifier(self.config)
         self.cue_generator = CueGenerator(self.config)
         self.dj_reasoner = DJReasoner(self.config)
+        self.rekordbox_exporter = RekordboxXMLExporter(self.config)
 
     def analyze_track(self, file_path: str, force_recompute: bool = False) -> TrackAnalysis:
         """
@@ -100,6 +102,13 @@ class AnalyzerEngine:
 
         # Cache the computed analysis
         self.cache.save_analysis(analysis)
+
+        # Automatically update master Rekordbox XML bridge
+        try:
+            all_tracks = self.cache.list_all_tracks()
+            self.rekordbox_exporter.sync_master_library(all_tracks)
+        except Exception:
+            pass
 
         return analysis
 

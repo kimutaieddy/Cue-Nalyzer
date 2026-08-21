@@ -1,36 +1,56 @@
-"""Pioneer Rekordbox XML Exporter for Hot Cues, Memory Cues, Beatgrid and Metadata."""
+"""Pioneer Rekordbox XML Exporter & Bridge Sync for Hot Cues, Beatgrids, and Playlists."""
 
-import html
-import urllib.parse
+import os
 from pathlib import Path
 from typing import List, Optional
+import urllib.parse
+import xml.dom.minidom
 import xml.etree.ElementTree as ET
 from cue_nalyzer.core.config import Config
 from cue_nalyzer.core.models import TrackAnalysis
 
 
 class RekordboxXMLExporter:
-    """Exports analyzed tracks into valid Pioneer Rekordbox XML for import to CDJs/Rekordbox."""
+    """
+    Exports analyzed tracks into standard Pioneer Rekordbox XML format
+    for direct integration with Rekordbox Performance Pads (Hot Cues A-H) and CDJs.
+    """
 
-    # Map hex colors to Rekordbox RGB integers (0-255)
+    # Rekordbox RGB colors
     HEX_COLOR_MAP = {
-        "#00FF7F": (0, 255, 127),    # Safe Mix In (Green)
-        "#FF0055": (255, 0, 85),     # Drop (Red)
-        "#FFAA00": (255, 170, 0),    # Breakdown (Orange)
-        "#9D00FF": (157, 0, 255),    # Drop 2 (Purple)
-        "#00E5FF": (0, 229, 255),    # Vocal In (Cyan)
-        "#0077FF": (0, 119, 255),    # Vocal Out (Blue)
-        "#FF8800": (255, 136, 0),    # Mix Out (Amber)
-        "#A6FF00": (166, 255, 0),    # Loop (Lime)
+        "#00E5FF": (0, 229, 255),    # Cyan (Start)
+        "#00FF7F": (0, 255, 127),    # Green (Groove)
+        "#FF0055": (255, 0, 85),     # Crimson Red (Drop)
+        "#FFAA00": (255, 170, 0),    # Orange (Breakdown)
+        "#FF00AA": (255, 0, 170),    # Pink/Magenta (Vocal In)
+        "#0077FF": (0, 119, 255),    # Blue (Vocal Out)
+        "#FF8800": (255, 136, 0),    # Amber (Mix Out)
+        "#A6FF00": (166, 255, 0),    # Lime (Loop)
+        "#9D00FF": (157, 0, 255),    # Purple (Drop 2)
     }
+
+    DEFAULT_MASTER_XML_NAME = "cue_nalyzer_library.xml"
 
     def __init__(self, config: Optional[Config] = None):
         self.config = config or Config()
 
-    def generate_xml(self, analyses: List[TrackAnalysis]) -> str:
-        """Generate formatted Rekordbox XML string for a collection of analyzed tracks."""
+    def format_windows_location_uri(self, file_path: str) -> str:
+        """
+        Format Windows/POSIX path to standard Rekordbox URI.
+        Example: D:\\music\\song.mp3 -> file://localhost/D:/music/song.mp3
+        """
+        p = Path(file_path).resolve()
+        posix_path = p.as_posix()
+        if not posix_path.startswith("/"):
+            posix_path = "/" + posix_path
+        # Encode URI with safe chars
+        encoded_path = urllib.parse.quote(posix_path, safe="/:")
+        return f"file://localhost{encoded_path}"
+
+    def generate_xml(self, analyses: List[TrackAnalysis], playlist_name: str = "Cue Nalyzer Library") -> str:
+        """Generate formatted Pioneer Rekordbox XML string."""
         root = ET.Element("DJ_PLAYLISTS", Version="1.0.0")
-        ET.SubElement(root, "PRODUCT", Name="Cue Nalyzer", Version="1.0.0", Company="Local DJ Music Intelligence")
+        ET.SubElement(root, "PRODUCT", Name="rekordbox", Version="6.8.0", Company="Pioneer DJ")
 
         collection = ET.SubElement(root, "COLLECTION", Entries=str(len(analyses)))
 
@@ -38,12 +58,9 @@ class RekordboxXMLExporter:
             meta = analysis.metadata
             grid = analysis.beat_grid
             key = analysis.key_info
+            genre = analysis.genre
 
-            # File location URI format (e.g. file://localhost/D:/path/to/song.mp3)
-            clean_path = str(Path(meta.file_path).resolve()).replace("\\", "/")
-            if not clean_path.startswith("/"):
-                clean_path = "/" + clean_path
-            location_uri = f"file://localhost{urllib.parse.quote(clean_path, safe='/:')}"
+            location_uri = self.format_windows_location_uri(meta.file_path)
 
             track_elem = ET.SubElement(
                 collection,
@@ -52,7 +69,7 @@ class RekordboxXMLExporter:
                 Name=meta.title or meta.file_name,
                 Artist=meta.artist or "Unknown Artist",
                 Album=meta.album or "",
-                Genre=analysis.genre.primary_genre,
+                Genre=genre.primary_genre,
                 Kind="MP3 File",
                 Size=str(1024 * 1024 * 5),
                 TotalTime=str(int(meta.duration_sec)),
@@ -63,12 +80,12 @@ class RekordboxXMLExporter:
                 DateAdded="2026-08-21",
                 BitRate=str(meta.bitrate_kbps or 320),
                 SampleRate=str(meta.sample_rate),
-                Comments=f"Cue Nalyzer | {analysis.genre.primary_genre} | Camelot: {key.camelot}",
+                Comments=f"Cue Nalyzer | {genre.primary_genre} | {key.camelot}",
                 Tonality=key.camelot,
                 Location=location_uri,
             )
 
-            # 1. Beatgrid / Tempo marker
+            # Beatgrid / Tempo marker
             first_downbeat = grid.downbeat_times[0] if grid.downbeat_times else 0.0
             ET.SubElement(
                 track_elem,
@@ -79,54 +96,50 @@ class RekordboxXMLExporter:
                 Battito="1",
             )
 
-            # 2. Hot Cues (A through H, Num 0 to 7) & Memory Cues (Num -1)
+            # Hot Cues strictly assigned to Num 0 through 7 (Pads A through H)
             for cue in analysis.cue_points:
-                hot_cue_num = (cue.hot_cue_index - 1) if cue.hot_cue_index and cue.hot_cue_index <= 8 else -1
-                rgb = self.HEX_COLOR_MAP.get(cue.color_hex, (0, 255, 127))
-
-                # Add Hot Cue
-                if hot_cue_num >= 0:
+                if cue.hot_cue_index and 1 <= cue.hot_cue_index <= 8:
+                    hot_num = cue.hot_cue_index - 1
+                    rgb = self.HEX_COLOR_MAP.get(cue.color_hex, (0, 229, 255))
                     ET.SubElement(
                         track_elem,
                         "POSITION_MARK",
                         Name=cue.label,
                         Type="0",
                         Start=f"{cue.timestamp:.3f}",
-                        Num=str(hot_cue_num),
+                        Num=str(hot_num),
                         Red=str(rgb[0]),
                         Green=str(rgb[1]),
                         Blue=str(rgb[2]),
                     )
 
-                # Add detailed Memory Cue with DJ explanation comment
-                ET.SubElement(
-                    track_elem,
-                    "POSITION_MARK",
-                    Name=f"Bar {cue.bar_number}: {cue.label} - {cue.reasoning[:60]}",
-                    Type="0",
-                    Start=f"{cue.timestamp:.3f}",
-                    Num="-1",
-                )
-
         # Build Playlists Node
         playlists = ET.SubElement(root, "PLAYLISTS")
         root_node = ET.SubElement(playlists, "NODE", Type="0", Name="ROOT")
         playlist_node = ET.SubElement(
-            root_node, "NODE", Name="Cue Nalyzer Cues", Type="1", KeyType="0", Entries=str(len(analyses))
+            root_node, "NODE", Name=playlist_name, Type="1", KeyType="0", Entries=str(len(analyses))
         )
 
         for idx in range(1, len(analyses) + 1):
             ET.SubElement(playlist_node, "TRACK", Key=str(idx))
 
-        # Format XML output
-        xml_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
-        return xml_bytes.decode("utf-8")
+        raw_xml = ET.tostring(root, encoding="utf-8")
+        parsed = xml.dom.minidom.parseString(raw_xml)
+        return parsed.toprettyxml(indent="  ", encoding="utf-8").decode("utf-8")
 
-    def export_to_file(self, analyses: List[TrackAnalysis], output_path: str):
-        """Export analyzed tracks directly to an XML file."""
-        xml_content = self.generate_xml(analyses)
+    def export_to_file(self, analyses: List[TrackAnalysis], output_path: str, playlist_name: str = "Cue Nalyzer Library"):
+        """Export analyzed tracks to XML file on disk."""
+        xml_content = self.generate_xml(analyses, playlist_name=playlist_name)
         p = Path(output_path)
         p.parent.mkdir(parents=True, exist_ok=True)
         with open(p, "w", encoding="utf-8") as f:
             f.write(xml_content)
 
+    def sync_master_library(self, analyses: List[TrackAnalysis], custom_path: Optional[str] = None) -> str:
+        """
+        Synchronize full analyzed collection to master Rekordbox XML bridge.
+        Returns the saved file path.
+        """
+        target_path = custom_path or str(Path.cwd() / self.DEFAULT_MASTER_XML_NAME)
+        self.export_to_file(analyses, target_path, playlist_name="Cue Nalyzer Master Collection")
+        return target_path

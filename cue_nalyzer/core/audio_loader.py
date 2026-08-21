@@ -132,3 +132,34 @@ class AudioLoader:
 
         return y, sr, metadata
 
+    def detect_true_musical_start(self, y: np.ndarray, sr: int, threshold_db: float = -48.0) -> float:
+        """
+        Detect true musical audio start timestamp (seconds), ignoring leading digital
+        silence or metadata encoding delay while preserving intentional ambient intros.
+        """
+        hop_length = self.config.HOP_LENGTH
+        rms = librosa.feature.rms(y=y, hop_length=hop_length)[0]
+        if len(rms) == 0:
+            return 0.0
+
+        max_rms = np.max(rms)
+        if max_rms <= 1e-6:
+            return 0.0
+
+        # Convert RMS to dB relative to peak
+        db_rms = 20 * np.log10(rms / max_rms + 1e-9)
+
+        # Find first frame where signal is above noise threshold
+        active_frames = np.where(db_rms > threshold_db)[0]
+        if len(active_frames) == 0:
+            return 0.0
+
+        first_active_frame = active_frames[0]
+        start_time = float(librosa.frames_to_time(first_active_frame, sr=sr, hop_length=hop_length))
+
+        # If silence is negligible (< 0.05s), start at 0.0
+        if start_time < 0.05:
+            return 0.0
+
+        return round(start_time, 3)
+

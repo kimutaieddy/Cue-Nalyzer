@@ -1,22 +1,41 @@
 /**
- * Cue Nalyzer — DJ Music Intelligence Studio Frontend Engine
+ * Cue Nalyzer — Streamlined DJ Cue Studio Frontend Engine
  */
 
 let currentAnalysis = null;
 let libraryTracks = [];
 let audio = new Audio();
 let isPlaying = false;
-let animationFrameId = null;
 
 // DOM Elements
 const trackPathInput = document.getElementById("trackPathInput");
 const analyzeBtn = document.getElementById("analyzeBtn");
-const exportRekordboxBtn = document.getElementById("exportRekordboxBtn");
+const openBatchModalBtn = document.getElementById("openBatchModalBtn");
+const closeBatchModalBtn = document.getElementById("closeBatchModalBtn");
+const batchModal = document.getElementById("batchModal");
+const batchFolderPathInput = document.getElementById("batchFolderPathInput");
+const batchForceRecompute = document.getElementById("batchForceRecompute");
+const startBatchBtn = document.getElementById("startBatchBtn");
+const batchResultContainer = document.getElementById("batchResultContainer");
+const batchStatusText = document.getElementById("batchStatusText");
+const batchProgressStats = document.getElementById("batchProgressStats");
+const batchProgressBar = document.getElementById("batchProgressBar");
+const batchSummaryMsg = document.getElementById("batchSummaryMsg");
+
+// Rekordbox Modal Elements
+const openRekordboxModalBtn = document.getElementById("openRekordboxModalBtn");
+const closeRekordboxModalBtn = document.getElementById("closeRekordboxModalBtn");
+const rekordboxModal = document.getElementById("rekordboxModal");
+const masterXmlPathInput = document.getElementById("masterXmlPathInput");
+const downloadXmlBtn = document.getElementById("downloadXmlBtn");
+
+// Library Modal
 const openLibraryModalBtn = document.getElementById("openLibraryModalBtn");
 const closeLibraryModalBtn = document.getElementById("closeLibraryModalBtn");
 const libraryModal = document.getElementById("libraryModal");
 const libraryTableBody = document.getElementById("libraryTableBody");
 const libCountBadge = document.getElementById("libCountBadge");
+const modalLibCount = document.getElementById("modalLibCount");
 
 // Display Elements
 const displayTitle = document.getElementById("displayTitle");
@@ -49,22 +68,13 @@ const playPauseBtn = document.getElementById("playPauseBtn");
 const playIcon = document.getElementById("playIcon");
 const stopBtn = document.getElementById("stopBtn");
 const hotCuePadsGrid = document.getElementById("hotCuePadsGrid");
-const djSummaryText = document.getElementById("djSummaryText");
 const cueEvidenceList = document.getElementById("cueEvidenceList");
-
-// Matcher Elements
-const matchTrackBSelect = document.getElementById("matchTrackBSelect");
-const runMatchBtn = document.getElementById("runMatchBtn");
-const transitionResultBox = document.getElementById("transitionResultBox");
-const transScore = document.getElementById("transScore");
-const transHarm = document.getElementById("transHarm");
-const transBpm = document.getElementById("transBpm");
-const transExplanation = document.getElementById("transExplanation");
 
 // Initialize
 window.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   fetchLibrary();
+  fetchRekordboxBridgeInfo();
   resizeCanvas();
   window.addEventListener("resize", () => {
     resizeCanvas();
@@ -103,18 +113,21 @@ function setupEventListeners() {
     seekTo(fraction * audio.duration);
   });
 
-  exportRekordboxBtn.addEventListener("click", () => {
-    if (currentAnalysis) {
-      window.open(`/api/export/rekordbox?track_hash=${currentAnalysis.metadata.file_hash}`, "_blank");
-    } else {
-      window.open("/api/export/rekordbox", "_blank");
-    }
-  });
+  // Modal Handlers
+  openBatchModalBtn.addEventListener("click", () => batchModal.classList.remove("hidden"));
+  closeBatchModalBtn.addEventListener("click", () => batchModal.classList.add("hidden"));
+
+  openRekordboxModalBtn.addEventListener("click", () => rekordboxModal.classList.remove("hidden"));
+  closeRekordboxModalBtn.addEventListener("click", () => rekordboxModal.classList.add("hidden"));
 
   openLibraryModalBtn.addEventListener("click", () => libraryModal.classList.remove("hidden"));
   closeLibraryModalBtn.addEventListener("click", () => libraryModal.classList.add("hidden"));
 
-  runMatchBtn.addEventListener("click", runTransitionMatch);
+  downloadXmlBtn.addEventListener("click", () => {
+    window.open("/api/export/rekordbox", "_blank");
+  });
+
+  startBatchBtn.addEventListener("click", runBatchAnalysis);
 
   audio.addEventListener("timeupdate", updatePlayhead);
   audio.addEventListener("ended", () => {
@@ -147,14 +160,26 @@ async function fetchLibrary() {
     if (res.ok) {
       libraryTracks = await res.json();
       libCountBadge.textContent = libraryTracks.length;
+      modalLibCount.textContent = libraryTracks.length;
       renderLibraryTable();
-      updateMatchSelect();
       if (!currentAnalysis && libraryTracks.length > 0) {
         loadAnalysisData(libraryTracks[0]);
       }
     }
   } catch (err) {
     console.error("Failed fetching library:", err);
+  }
+}
+
+async function fetchRekordboxBridgeInfo() {
+  try {
+    const res = await fetch("/api/rekordbox/bridge-info");
+    if (res.ok) {
+      const data = await res.json();
+      masterXmlPathInput.value = data.master_xml_path;
+    }
+  } catch (err) {
+    console.error("Failed fetching Rekordbox info:", err);
   }
 }
 
@@ -182,7 +207,52 @@ async function analyzeTrack(path) {
     alert(`Failed to analyze track: ${err.message}`);
   } finally {
     analyzeBtn.disabled = false;
-    analyzeBtn.innerHTML = `<span>Analyze</span>`;
+    analyzeBtn.innerHTML = `<span>Analyze Track</span>`;
+  }
+}
+
+async function runBatchAnalysis() {
+  const folder = batchFolderPathInput.value.trim();
+  if (!folder) {
+    alert("Please enter a valid folder path.");
+    return;
+  }
+
+  startBatchBtn.disabled = true;
+  startBatchBtn.textContent = "Processing Batch...";
+  batchResultContainer.classList.remove("hidden");
+  batchStatusText.textContent = "Scanning and analyzing audio files...";
+  batchProgressBar.style.width = "40%";
+
+  try {
+    const res = await fetch("/api/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        folder_path: folder,
+        force_recompute: batchForceRecompute.checked,
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      alert(`Batch error: ${errData.detail || "Failed to process folder"}`);
+      return;
+    }
+
+    const data = await res.json();
+    batchProgressBar.style.width = "100%";
+    batchStatusText.textContent = "✓ Batch Processing Complete";
+    batchProgressStats.textContent = `${data.analyzed_count + data.skipped_count} / ${data.total_found} tracks`;
+    batchSummaryMsg.textContent = `Analyzed: ${data.analyzed_count} | Cached (Skipped): ${data.skipped_count} | Failed: ${data.failed_count}. Rekordbox XML bridge automatically updated!`;
+
+    fetchLibrary();
+    fetchRekordboxBridgeInfo();
+  } catch (err) {
+    alert(`Batch error: ${err.message}`);
+  } finally {
+    startBatchBtn.disabled = false;
+    startBatchBtn.textContent = "Start Batch Analysis";
   }
 }
 
@@ -192,7 +262,7 @@ function loadAnalysisData(analysis) {
   const grid = analysis.beat_grid;
   const key = analysis.key_info;
   const genre = analysis.genre;
-  const rhythm = analysis.rhythm;
+  const rhythm = analysis.rhythm || { groove_type: "Four-On-The-Floor" };
   const energy = analysis.energy;
 
   // Set Audio Source
@@ -237,8 +307,7 @@ function loadAnalysisData(analysis) {
     }
   }
 
-  // Summary & Evidence
-  djSummaryText.textContent = analysis.dj_summary;
+  // Summary & Cue Evidence
   renderCueEvidence(analysis.cue_points);
   renderHotCuePads(analysis.cue_points);
   renderSectionBanners(analysis.structure, meta.duration_sec);
@@ -426,12 +495,12 @@ function renderHotCuePads(cues) {
         if (!isPlaying) togglePlayPause();
       });
     } else {
-      pad.className = "bg-zinc-950 border border-zinc-800/60 rounded-xl p-3 flex flex-col justify-between text-left opacity-40 cursor-not-allowed";
+      pad.className = "bg-zinc-950 border border-zinc-800/40 rounded-xl p-3 flex flex-col justify-between text-left opacity-30 cursor-not-allowed";
       pad.innerHTML = `
-        <span class="w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs bg-zinc-800 text-zinc-500 font-mono">
+        <span class="w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs bg-zinc-800 text-zinc-600 font-mono">
           ${letter}
         </span>
-        <div class="mt-2 text-[10px] font-mono text-zinc-600">Unassigned</div>
+        <div class="mt-2 text-[10px] font-mono text-zinc-700">Empty</div>
       `;
     }
 
@@ -441,19 +510,24 @@ function renderHotCuePads(cues) {
 
 function renderCueEvidence(cues) {
   cueEvidenceList.innerHTML = "";
+  const hotLabels = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
   cues.forEach((cue) => {
+    const letter = (cue.hot_cue_index && cue.hot_cue_index <= 8) ? hotLabels[cue.hot_cue_index - 1] : "•";
     const item = document.createElement("div");
     item.className = "bg-zinc-950/70 border border-zinc-800/80 rounded-lg p-3 space-y-1 font-mono";
     item.innerHTML = `
       <div class="flex items-center justify-between">
-        <span class="font-bold text-white flex items-center space-x-1.5">
-          <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: ${cue.color_hex}"></span>
-          <span>${cue.label} (${formatTime(cue.timestamp)} | Bar ${cue.bar_number})</span>
+        <span class="font-bold text-white flex items-center space-x-2">
+          <span class="w-5 h-5 rounded flex items-center justify-center font-black text-xs text-black" style="background-color: ${cue.color_hex}">
+            ${letter}
+          </span>
+          <span>${cue.label} — ${formatTime(cue.timestamp)} (Bar ${cue.bar_number})</span>
         </span>
         <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-green-400 font-bold">${cue.confidence_label} (${Math.round(cue.confidence * 100)}%)</span>
       </div>
       <p class="text-[11px] text-zinc-300 leading-snug">${cue.reasoning}</p>
-      <div class="text-[10px] text-cyan-400/90 pt-1">👉 Action: ${cue.suggested_use}</div>
+      <div class="text-[10px] text-cyan-400/90 pt-0.5">👉 DJ Action: ${cue.suggested_use}</div>
     `;
     cueEvidenceList.appendChild(item);
   });
@@ -470,9 +544,9 @@ function renderLibraryTable() {
       <td class="text-yellow-400 font-bold">${t.beat_grid.bpm.toFixed(1)}</td>
       <td><span class="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">${t.key_info.camelot}</span></td>
       <td class="text-pink-400">${t.genre.primary_genre}</td>
-      <td class="text-zinc-500">${formatTime(t.metadata.duration_sec)}</td>
+      <td class="text-cyan-400 font-bold">${t.cue_points.length} Cues</td>
       <td>
-        <button class="px-2 py-1 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500 hover:text-black rounded text-[10px] font-bold transition">
+        <button class="px-2.5 py-1 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500 hover:text-black rounded text-[10px] font-bold transition">
           Load
         </button>
       </td>
@@ -483,50 +557,6 @@ function renderLibraryTable() {
     });
     libraryTableBody.appendChild(tr);
   });
-}
-
-function updateMatchSelect() {
-  matchTrackBSelect.innerHTML = `<option value="">-- Choose Library Track --</option>`;
-  libraryTracks.forEach((t) => {
-    const opt = document.createElement("option");
-    opt.value = t.metadata.file_hash;
-    opt.textContent = `${t.metadata.title} (${t.beat_grid.bpm.toFixed(0)} BPM | ${t.key_info.camelot})`;
-    matchTrackBSelect.appendChild(opt);
-  });
-}
-
-async function runTransitionMatch() {
-  if (!currentAnalysis) {
-    alert("Please analyze or load a track first.");
-    return;
-  }
-  const trackBHash = matchTrackBSelect.value;
-  if (!trackBHash) {
-    alert("Please select an incoming track B.");
-    return;
-  }
-
-  try {
-    const res = await fetch("/api/match", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        track_a_hash: currentAnalysis.metadata.file_hash,
-        track_b_hash: trackBHash,
-      }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      transScore.textContent = `${data.transition_score} / 100`;
-      transHarm.textContent = data.harmonic_compatibility;
-      transBpm.textContent = `${data.bpm_diff_pct > 0 ? "+" : ""}${data.bpm_diff_pct.toFixed(1)}% (${data.transition_style})`;
-      transExplanation.textContent = data.explanation;
-      transitionResultBox.classList.remove("hidden");
-    }
-  } catch (err) {
-    alert(`Match evaluation error: ${err.message}`);
-  }
 }
 
 // Transport & Audio Playback
@@ -572,4 +602,3 @@ function formatTime(seconds) {
   const s = (seconds % 60).toFixed(1);
   return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
 }
-

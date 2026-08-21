@@ -1,20 +1,20 @@
-"""FastAPI API routes for Cue Nalyzer web studio and endpoints."""
+"""FastAPI API routes for Cue Nalyzer web studio and batch engine."""
 
 from pathlib import Path
-from typing import List, Optional
-from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
+from typing import Any, Dict, List, Optional
+from fastapi import APIRouter, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from cue_nalyzer.analyzer import AnalyzerEngine
+from cue_nalyzer.batch.batch_processor import BatchProcessor, BatchResult
 from cue_nalyzer.core.cache import AnalysisCache
-from cue_nalyzer.core.models import TrackAnalysis, TransitionAdvice
+from cue_nalyzer.core.models import TrackAnalysis
 from cue_nalyzer.export.rekordbox_xml import RekordboxXMLExporter
-from cue_nalyzer.intelligence.set_planner import SetPlanner
 
 router = APIRouter(prefix="/api")
 engine = AnalyzerEngine()
 cache = AnalysisCache()
-planner = SetPlanner()
+batch_proc = BatchProcessor()
 rekordbox_exporter = RekordboxXMLExporter()
 
 
@@ -23,19 +23,41 @@ class AnalyzePathRequest(BaseModel):
     force_recompute: bool = False
 
 
-class MatchRequest(BaseModel):
-    track_a_hash: str
-    track_b_hash: str
+class BatchFolderRequest(BaseModel):
+    folder_path: str
+    force_recompute: bool = False
 
 
 @router.post("/analyze/path", response_model=TrackAnalysis)
 def analyze_file_path(req: AnalyzePathRequest):
-    """Analyze a local audio file by its system path."""
+    """Analyze a single audio file by path."""
     try:
         analysis = engine.analyze_track(req.file_path, force_recompute=req.force_recompute)
         return analysis
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found on local disk")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/batch")
+def batch_analyze_folder(req: BatchFolderRequest) -> Dict[str, Any]:
+    """Batch analyze a playlist or folder with parallel workers and caching."""
+    try:
+        res: BatchResult = batch_proc.process_folder(
+            req.folder_path,
+            force_recompute=req.force_recompute,
+        )
+        return {
+            "total_found": res.total_found,
+            "analyzed_count": res.analyzed_count,
+            "skipped_count": res.skipped_count,
+            "failed_count": res.failed_count,
+            "failed_files": res.failed_files,
+            "rekordbox_xml_path": res.rekordbox_xml_path,
+        }
+    except NotADirectoryError:
+        raise HTTPException(status_code=400, detail="Invalid directory path")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -75,22 +97,9 @@ def stream_audio(file_hash: str):
     return FileResponse(file_path, media_type=media_type)
 
 
-@router.post("/match", response_model=TransitionAdvice)
-def match_tracks(req: MatchRequest):
-    """Compute transition compatibility between two tracks."""
-    track_a = cache.get_analysis_by_hash(req.track_a_hash)
-    track_b = cache.get_analysis_by_hash(req.track_b_hash)
-
-    if not track_a or not track_b:
-        raise HTTPException(status_code=404, detail="One or both tracks not found in cache")
-
-    advice = planner.evaluate_transition(track_a, track_b)
-    return advice
-
-
 @router.get("/export/rekordbox")
 def export_rekordbox(track_hash: Optional[str] = None):
-    """Download Pioneer Rekordbox XML."""
+    """Download Pioneer Rekordbox XML bridge."""
     if track_hash:
         track = cache.get_analysis_by_hash(track_hash)
         if not track:
@@ -108,3 +117,18 @@ def export_rekordbox(track_hash: Optional[str] = None):
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
+
+@router.get("/rekordbox/bridge-info")
+def rekordbox_bridge_info():
+    """Get status and path of master Rekordbox XML bridge."""
+    master_path = Path.cwd() / RekordboxXMLExporter.DEFAULT_MASTER_XML_NAME
+    return {
+        "master_xml_path": str(master_path.resolve()),
+        "exists": master_path.exists(),
+        "instructions": [
+            "1. Open Rekordbox.",
+            "2. Go to File -> Preferences -> Advanced -> Database.",
+            "3. Under 'rekordbox xml', set the file path to this generated XML file.",
+            "4. In Rekordbox's left sidebar, click 'rekordbox xml' to view and import your analyzed playlists with all Hot Cues on the pads.",
+        ],
+    }

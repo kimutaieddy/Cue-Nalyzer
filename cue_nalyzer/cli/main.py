@@ -1,3 +1,5 @@
+"""Command-Line Interface (CLI) for Cue Nalyzer with rich formatting and Rekordbox sync."""
+
 import argparse
 import sys
 from pathlib import Path
@@ -10,14 +12,14 @@ if hasattr(sys.stderr, "reconfigure"):
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.table import Table
-from rich.text import Text
 from cue_nalyzer.analyzer import AnalyzerEngine
+from cue_nalyzer.batch.batch_processor import BatchProcessor
+from cue_nalyzer.core.cache import AnalysisCache
 from cue_nalyzer.core.config import Config
 from cue_nalyzer.export.json_exporter import JSONExporter
 from cue_nalyzer.export.rekordbox_xml import RekordboxXMLExporter
-from cue_nalyzer.intelligence.set_planner import SetPlanner
 
 console = Console(highlight=False)
 
@@ -29,28 +31,15 @@ def format_time(seconds: float) -> str:
     return f"{m:02d}:{s:04.1f}"
 
 
-def render_ascii_energy(energy_profile, width: int = 40) -> str:
-    """Render a compact ASCII energy curve."""
-    rms = energy_profile.overall_rms
-    if not rms:
-        return ""
-    if len(rms) <= width:
-        sampled = rms
-    else:
-        indices = [int(i * (len(rms) - 1) / (width - 1)) for i in range(width)] if width > 1 else [0]
-        sampled = [rms[min(i, len(rms) - 1)] for i in indices]
-    chars = [" ", " ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
-    return "".join(chars[min(8, max(0, int(v * 8)))] for v in sampled)
-
-
 def cmd_analyze(args):
-    """Analyze a single track and print rich DJ intelligence dashboard."""
+    """Analyze a single track and display intelligent DJ cue points."""
     file_path = args.file
     engine = AnalyzerEngine()
 
     with Progress(
         SpinnerColumn(),
         TextColumn("[bold cyan]Listening & Analyzing track with MIR intelligence...[/bold cyan]"),
+        console=console,
         transient=True,
     ) as progress:
         progress.add_task("analyze", total=None)
@@ -60,7 +49,7 @@ def cmd_analyze(args):
     grid = analysis.beat_grid
     key = analysis.key_info
     genre = analysis.genre
-    rhythm = analysis.rhythm
+    rhythm = analysis.rhythm or type("R", (), {"groove_type": "Four-On-The-Floor"})()
     energy = analysis.energy
 
     # 1. Header Overview Panel
@@ -69,7 +58,7 @@ def cmd_analyze(args):
     overview_table.add_row("[bold]Artist:[/bold]", f"[cyan]{meta.artist}[/cyan]", "[bold]Key:[/bold]", f"[green]{key.camelot} ({key.key_name})[/green]")
     overview_table.add_row("[bold]Duration:[/bold]", format_time(meta.duration_sec), "[bold]Genre:[/bold]", f"[magenta]{genre.primary_genre} ({int(genre.primary_confidence * 100)}%)[/magenta]")
     overview_table.add_row("[bold]Groove:[/bold]", rhythm.groove_type, "[bold]Loudness:[/bold]", f"{energy.average_lufs:.1f} LUFS (Dyn: {energy.dynamic_range_db:.1f} dB)")
-    overview_table.add_row("[bold]Vocals:[/bold]", f"{int(analysis.vocals.vocal_ratio * 100)}% Vocal Presence", "[bold]Energy Map:[/bold]", f"[green]{render_ascii_energy(energy)}[/green]")
+    overview_table.add_row("[bold]Vocals:[/bold]", f"{int(analysis.vocals.vocal_ratio * 100)}% Vocal Presence", "[bold]Total Cues:[/bold]", f"[bold green]{len(analysis.cue_points)} Hot Cues[/bold green]")
 
     console.print(Panel(overview_table, title=f"🎧 [bold white]Cue Nalyzer — {meta.file_name}[/bold white]", border_style="cyan"))
 
@@ -80,20 +69,17 @@ def cmd_analyze(args):
     struct_table.add_column("Bars", justify="center")
     struct_table.add_column("Section Type", justify="left")
     struct_table.add_column("Energy", justify="center")
-    struct_table.add_column("Vocals", justify="center")
     struct_table.add_column("Musical Context & DJ Description", justify="left")
 
     for s in analysis.structure:
         color = "green" if "DROP" in s.label.value else ("yellow" if "BUILD" in s.label.value or "BREAK" in s.label.value else "white")
         energy_bar = "█" * int(s.energy_level * 6) + "░" * (6 - int(s.energy_level * 6))
-        vocal_bar = "█" * int(s.vocal_presence * 6) + "░" * (6 - int(s.vocal_presence * 6))
         struct_table.add_row(
             str(s.section_id),
             f"{format_time(s.start_time)} - {format_time(s.end_time)}",
             f"Bar {s.start_bar}-{s.end_bar} ({s.num_bars}b)",
             f"[{color}]{s.label.value}[/{color}]",
             energy_bar,
-            vocal_bar,
             s.description,
         )
 
@@ -101,11 +87,11 @@ def cmd_analyze(args):
     console.print()
 
     # 3. Recommended DJ Cue Points Table
-    cue_table = Table(title="🎯 Contextual DJ Cue Points (Pioneer / Rekordbox Compatible)", header_style="bold cyan", border_style="cyan")
+    cue_table = Table(title="🎯 Pioneer Rekordbox Hot Cues (Performance Pads A–H)", header_style="bold cyan", border_style="cyan")
     cue_table.add_column("Hot Cue", justify="center", style="bold")
     cue_table.add_column("Time", justify="center", style="yellow")
     cue_table.add_column("Bar", justify="center")
-    cue_table.add_column("Type", justify="left")
+    cue_table.add_column("Type / Label", justify="left")
     cue_table.add_column("Conf", justify="center", style="green")
     cue_table.add_column("DJ Reasoning & Actionable Advice", justify="left")
 
@@ -118,14 +104,11 @@ def cmd_analyze(args):
             f"Bar {cue.bar_number}",
             f"[{cue.color_hex}]{cue.label}[/{cue.color_hex}]",
             f"{int(cue.confidence * 100)}%",
-            f"[bold]{cue.reasoning}[/bold]\n[dim]👉 Suggested Action: {cue.suggested_use}[/dim]",
+            f"[bold]{cue.reasoning}[/bold]\n[dim]👉 Action: {cue.suggested_use}[/dim]",
         )
 
     console.print(cue_table)
     console.print()
-
-    # 4. DJ Strategy Briefing
-    console.print(Panel(analysis.dj_summary, title="💡 [bold]DJ Strategy & Transition Advice[/bold]", border_style="yellow"))
 
     # Exports if requested
     if args.json:
@@ -138,102 +121,93 @@ def cmd_analyze(args):
 
 
 def cmd_batch(args):
-    """Batch analyze an entire directory of audio files."""
+    """Batch analyze an entire folder/playlist with instant caching and auto-sync."""
     folder_path = Path(args.folder)
     if not folder_path.is_dir():
         console.print(f"[red]Error: {folder_path} is not a valid directory.[/red]")
         sys.exit(1)
 
-    audio_extensions = {".mp3", ".wav", ".flac", ".m4a", ".aiff"}
-    audio_files = [f for f in folder_path.rglob("*") if f.suffix.lower() in audio_extensions]
-
-    if not audio_files:
-        console.print(f"[yellow]No audio files found in {folder_path}[/yellow]")
-        return
-
-    console.print(f"[bold cyan]Found {len(audio_files)} audio files. Starting batch analysis...[/bold cyan]")
-    engine = AnalyzerEngine()
-    analyses = []
+    batch_proc = BatchProcessor()
+    console.print(f"[bold cyan]Scanning directory: {folder_path}...[/bold cyan]")
 
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
         console=console,
     ) as progress:
-        task = progress.add_task("Analyzing tracks...", total=len(audio_files))
-        for f in audio_files:
-            progress.update(task, description=f"Analyzing [cyan]{f.name}[/cyan]...")
-            try:
-                a = engine.analyze_track(str(f))
-                analyses.append(a)
-            except Exception as e:
-                console.print(f"[red]Failed analyzing {f.name}: {e}[/red]")
-            progress.advance(task)
+        task = progress.add_task("Analyzing playlist...", total=100)
 
-    console.print(f"[bold green]✓ Successfully analyzed {len(analyses)} tracks![/bold green]")
+        def on_progress(cur, total, filename, status, _):
+            progress.update(
+                task,
+                total=total,
+                completed=cur,
+                description=f"[{'yellow' if 'SKIPPED' in status else 'cyan'}]{filename[:30]}[/]: {status}",
+            )
 
-    if args.rekordbox:
-        RekordboxXMLExporter().export_to_file(analyses, args.rekordbox)
-        console.print(f"[green]✓ Full library Rekordbox XML exported to: {args.rekordbox}[/green]")
+        res = batch_proc.process_folder(
+            str(folder_path),
+            force_recompute=args.force,
+            progress_callback=on_progress,
+            auto_sync_rekordbox=True,
+        )
+
+    console.print(Panel(
+        f"✓ [bold green]Batch Analysis Finished![/bold green]\n\n"
+        f"• Total Tracks Found: {res.total_found}\n"
+        f"• Newly Analyzed: [cyan]{res.analyzed_count}[/cyan]\n"
+        f"• Skipped (Pre-cached): [yellow]{res.skipped_count}[/yellow]\n"
+        f"• Failed: [red]{res.failed_count}[/red]\n"
+        f"• Master Rekordbox XML Bridge: [bold cyan]{res.rekordbox_xml_path}[/bold cyan]",
+        title="⚡ Batch Summary",
+        border_style="green",
+    ))
 
 
-def cmd_match(args):
-    """Compare two tracks for transition compatibility."""
-    engine = AnalyzerEngine()
-    planner = SetPlanner()
+def cmd_sync(args):
+    """Sync all analyzed library tracks into master Rekordbox XML bridge."""
+    cache = AnalysisCache()
+    exporter = RekordboxXMLExporter()
+    tracks = cache.list_all_tracks()
 
-    console.print("[cyan]Analyzing Track A and Track B...[/cyan]")
-    track_a = engine.analyze_track(args.track1)
-    track_b = engine.analyze_track(args.track2)
+    if not tracks:
+        console.print("[yellow]No analyzed tracks found in library. Run 'analyze' or 'batch' first.[/yellow]")
+        return
 
-    advice = planner.evaluate_transition(track_a, track_b)
-
-    table = Table(title=f"🎛️ Transition Match: '{track_a.metadata.title}' ➔ '{track_b.metadata.title}'", border_style="cyan")
-    table.add_column("Metric", style="bold")
-    table.add_column("Track A (Outgoing)")
-    table.add_column("Track B (Incoming)")
-    table.add_column("DJ Transition Assessment", style="yellow")
-
-    table.add_row("BPM", f"{track_a.beat_grid.bpm:.1f}", f"{track_b.beat_grid.bpm:.1f}", f"Delta: {advice.bpm_diff_pct:+.1f}%")
-    table.add_row("Key (Camelot)", f"{track_a.key_info.camelot} ({track_a.key_info.key_name})", f"{track_b.key_info.camelot} ({track_b.key_info.key_name})", advice.harmonic_compatibility)
-    table.add_row("Genre", track_a.genre.primary_genre, track_b.genre.primary_genre, "Style check")
-    table.add_row("Compatibility Score", "", "", f"[bold green]{advice.transition_score} / 100[/bold green]")
-    table.add_row("Recommended Style", "", "", f"[bold cyan]{advice.transition_style}[/bold cyan]")
-
-    console.print(table)
-    console.print(Panel(advice.explanation, title="💡 [bold]Transition Guidance[/bold]", border_style="yellow"))
-
-    if advice.warnings:
-        console.print(Panel("\n".join(f"⚠️ {w}" for w in advice.warnings), title="[bold red]Warnings[/bold red]", border_style="red"))
+    out_path = args.output or str(Path.cwd() / RekordboxXMLExporter.DEFAULT_MASTER_XML_NAME)
+    exporter.sync_master_library(tracks, custom_path=out_path)
+    console.print(f"[bold green]✓ Successfully synced {len(tracks)} tracks to Rekordbox XML bridge: {out_path}[/bold green]")
 
 
 def cmd_serve(args):
     """Launch the FastAPI server and DJ Web Studio UI."""
     import uvicorn
-    console.print(f"[bold green]🚀 Launching Cue Nalyzer Web Studio on http://{args.host}:{args.port}[/bold green]")
+    console.print(f"[bold green]🚀 Launching Cue Nalyzer DJ Studio on http://{args.host}:{args.port}[/bold green]")
     uvicorn.run("cue_nalyzer.api.server:app", host=args.host, port=args.port, reload=args.reload)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Cue Nalyzer — Intelligent Local DJ Music Intelligence System")
+    parser = argparse.ArgumentParser(description="Cue Nalyzer — Intelligent DJ Music Intelligence System")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # analyze
-    p_analyze = subparsers.add_parser("analyze", help="Analyze a single track")
+    p_analyze = subparsers.add_parser("analyze", help="Analyze a single audio track")
     p_analyze.add_argument("file", help="Path to audio file")
     p_analyze.add_argument("--force", action="store_true", help="Force recomputation ignoring cache")
     p_analyze.add_argument("--json", help="Export analysis to JSON file path")
     p_analyze.add_argument("--rekordbox", help="Export to Rekordbox XML file path")
 
     # batch
-    p_batch = subparsers.add_parser("batch", help="Batch analyze an entire folder")
+    p_batch = subparsers.add_parser("batch", help="Batch analyze an entire folder/playlist")
     p_batch.add_argument("folder", help="Directory containing audio files")
-    p_batch.add_argument("--rekordbox", default="cue_nalyzer_library.xml", help="Rekordbox XML output path")
+    p_batch.add_argument("--force", action="store_true", help="Force recompute cached files")
+    p_batch.add_argument("--rekordbox", help="Custom Rekordbox XML output path")
 
-    # match
-    p_match = subparsers.add_parser("match", help="Evaluate DJ transition compatibility between two tracks")
-    p_match.add_argument("track1", help="Path to outgoing Track A")
-    p_match.add_argument("track2", help="Path to incoming Track B")
+    # sync
+    p_sync = subparsers.add_parser("sync", help="Synchronize all cached tracks to Rekordbox XML bridge")
+    p_sync.add_argument("--output", help="Target XML path")
 
     # serve
     p_serve = subparsers.add_parser("serve", help="Start the Web UI & REST API server")
@@ -247,8 +221,8 @@ def main():
         cmd_analyze(args)
     elif args.command == "batch":
         cmd_batch(args)
-    elif args.command == "match":
-        cmd_match(args)
+    elif args.command == "sync":
+        cmd_sync(args)
     elif args.command == "serve":
         cmd_serve(args)
     else:
@@ -257,4 +231,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
