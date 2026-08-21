@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cue Nalyzer — DJ Music Intelligence Studio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-['Outfit',sans-serif] min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black">
+
+  <!-- TOP NAV HEADER -->
+  <header class="border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 via-indigo-500 to-pink-500 p-[2px] shadow-lg shadow-cyan-500/20">
+        <div class="w-full h-full bg-zinc-950 rounded-[7px] flex items-center justify-center font-bold text-cyan-400 text-lg">🎛️</div>
+      </div>
+      <div>
+        <h1 class="text-lg font-black tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-pink-400">
+          Cue Nalyzer
+        </h1>
+        <p class="text-[10px] text-zinc-400 font-mono tracking-tight uppercase">Local DJ Music Intelligence & Cue Studio</p>
+      </div>
+    </div>
+
+    <!-- Quick Analysis Input Bar -->
+    <div class="flex items-center space-x-3 max-w-xl w-full mx-6">
+      <div class="relative flex-1">
+        <input id="trackPathInput" type="text" placeholder="Enter audio file path (e.g. D:\spotify_downloder\track.mp3)" 
+               class="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg px-3 py-1.5 text-xs font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-cyan-400 transition" />
+      </div>
+      <button id="analyzeBtn" class="bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-bold px-4 py-1.5 rounded-lg text-xs tracking-wide transition flex items-center space-x-1 shadow-lg shadow-cyan-500/20">
+        <span>Analyze</span>
+      </button>
+    </div>
+
+    <!-- Global Actions -->
+    <div class="flex items-center space-x-3">
+      <button id="exportRekordboxBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-700 transition flex items-center space-x-1.5">
+        <span>💿 Export Rekordbox XML</span>
+      </button>
+      <button id="openLibraryModalBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-700 transition">
+        📚 Library (<span id="libCountBadge">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full">
+
+    <!-- TRACK HERO OVERVIEW -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      
+      <!-- Track Meta Card -->
+      <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between shadow-md">
+        <div>
+          <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Now Loaded</span>
+          <h2 id="displayTitle" class="text-lg font-bold text-white truncate mt-0.5">Select or Analyze a Track</h2>
+          <p id="displayArtist" class="text-xs text-cyan-400 font-medium truncate">No artist loaded</p>
+        </div>
+        <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mt-3 pt-2 border-t border-zinc-800/80">
+          <span id="displayDuration">00:00</span>
+          <span id="displayBitrate">320 kbps</span>
+        </div>
+      </div>
+
+      <!-- BPM & Beat Grid Card -->
+      <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between shadow-md">
+        <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Tempo & Meter</span>
+        <div class="flex items-baseline space-x-2 my-1">
+          <span id="displayBpm" class="text-3xl font-black font-mono text-yellow-400">---.-</span>
+          <span class="text-xs text-zinc-400 font-mono">BPM (4/4)</span>
+        </div>
+        <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-2 border-t border-zinc-800/80">
+          <span>Groove: <strong id="displayGroove" class="text-zinc-200">Straight</strong></span>
+          <span id="displaySwing" class="text-zinc-500">Swing: 0%</span>
+        </div>
+      </div>
+
+      <!-- Harmonic Key & Camelot Card -->
+      <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between shadow-md">
+        <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Harmonic Key</span>
+        <div class="flex items-center space-x-3 my-1">
+          <span id="displayCamelot" class="text-2xl font-black font-mono bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 px-2.5 py-0.5 rounded-lg">--</span>
+          <div>
+            <div id="displayKeyName" class="text-sm font-bold text-white">---</div>
+            <div id="displayOpenKey" class="text-[10px] font-mono text-zinc-400">OpenKey: --</div>
+          </div>
+        </div>
+        <div class="text-[11px] font-mono text-zinc-400 pt-2 border-t border-zinc-800/80 truncate">
+          Stability: <span id="displayHarmStability" class="text-green-400">100%</span>
+        </div>
+      </div>
+
+      <!-- Genre Intelligence Card -->
+      <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between shadow-md">
+        <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Genre Intelligence</span>
+        <div>
+          <div class="flex items-baseline justify-between mt-1">
+            <span id="displayPrimaryGenre" class="text-base font-bold text-pink-400">---</span>
+            <span id="displayGenreConfidence" class="text-xs font-mono text-zinc-400">0%</span>
+          </div>
+          <!-- Mini probability bar -->
+          <div class="w-full bg-zinc-800 rounded-full h-1.5 mt-1.5 overflow-hidden flex" id="genreProbBar"></div>
+        </div>
+        <div class="text-[11px] font-mono text-zinc-400 pt-2 border-t border-zinc-800/80 truncate">
+          Vocal Presence: <span id="displayVocalRatio" class="text-cyan-400">0%</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 3-BAND WAVEFORM DISPLAY & INTERACTIVE DECK -->
+    <section class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-2xl space-y-4">
+      
+      <!-- Waveform Top Metadata Bar & Section Markers -->
+      <div class="flex items-center justify-between text-xs font-mono text-zinc-400">
+        <div class="flex items-center space-x-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span class="font-bold text-zinc-200">DECK 1 (3-Band Waveform)</span>
+          <span class="text-zinc-600">|</span>
+          <span class="text-[11px]"><span class="text-blue-400">■ Low/Sub</span> <span class="text-amber-400">■ Mids</span> <span class="text-rose-400">■ Highs</span></span>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span id="currentPlayTime" class="text-cyan-400 font-bold text-sm">00:00.0</span>
+          <span class="text-zinc-600">/</span>
+          <span id="totalPlayTime">00:00.0</span>
+        </div>
+      </div>
+
+      <!-- Arrangement Section Banners Strip -->
+      <div id="sectionBannerStrip" class="w-full h-5 bg-zinc-950 rounded-t-md overflow-hidden flex border-b border-zinc-800/50 text-[9px] font-mono font-bold uppercase tracking-wider">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- Main Canvas Waveform Container -->
+      <div class="relative w-full h-44 bg-zinc-950 rounded-b-md overflow-hidden border border-zinc-800 cursor-crosshair group">
+        <canvas id="waveformCanvas" class="w-full h-full block"></canvas>
+        
+        <!-- Beatgrid & Downbeat Overlay Canvas -->
+        <canvas id="overlayCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+        <!-- Dynamic Playhead Needle -->
+        <div id="playheadNeedle" class="absolute top-0 bottom-0 w-[2px] bg-red-500 shadow-[0_0_8px_#ef4444] pointer-events-none left-0 transition-none z-20"></div>
+
+        <!-- Cue Marker Pins Layer -->
+        <div id="cuePinsContainer" class="absolute inset-0 pointer-events-none z-10"></div>
+      </div>
+
+      <!-- Transport Controls & Audio Playback -->
+      <div class="flex items-center justify-between pt-1">
+        <div class="flex items-center space-x-3">
+          <button id="playPauseBtn" class="bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-black px-6 py-2 rounded-xl text-sm transition shadow-lg shadow-cyan-500/20 flex items-center space-x-2">
+            <span id="playIcon">▶ PLAY</span>
+          </button>
+          <button id="stopBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium px-4 py-2 rounded-xl text-xs border border-zinc-700 transition">
+            ⏹ STOP
+          </button>
+          <button id="zoomInBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-2 rounded-xl text-xs border border-zinc-700 transition">🔍+</button>
+          <button id="zoomOutBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-2 rounded-xl text-xs border border-zinc-700 transition">🔍-</button>
+        </div>
+
+        <div class="flex items-center space-x-4 text-xs font-mono text-zinc-400">
+          <span>Space: <kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-300 border border-zinc-700">Play/Pause</kbd></span>
+          <span>Click Waveform: <kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] text-zinc-300 border border-zinc-700">Seek</kbd></span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PERFORMANCE HOT CUES PADS (A - H) -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold tracking-wider uppercase text-zinc-300 flex items-center space-x-2">
+          <span>🎯 Performance Hot Cues & DJ Trigger Pads</span>
+        </h3>
+        <span class="text-xs font-mono text-zinc-500">Click any pad to audition & jump immediately</span>
+      </div>
+
+      <div id="hotCuePadsGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        <!-- 8 Dynamic DJ Pads injected by app.js -->
+      </div>
+    </section>
+
+    <!-- INTELLIGENCE DEEP DIVE & CLASH REASONING -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- DJ Explainability & Strategy Briefing -->
+      <div class="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-md space-y-4">
+        <h3 class="text-sm font-bold text-zinc-200 tracking-wider uppercase flex items-center space-x-2">
+          <span>🧠 Contextual DJ Intelligence & Evidence</span>
+        </h3>
+        
+        <div id="djSummaryText" class="text-xs leading-relaxed text-zinc-300 bg-zinc-950/60 p-4 rounded-xl border border-zinc-800/80 font-mono whitespace-pre-line">
+          No analysis available yet. Analyze a track above to view musical reasoning.
+        </div>
+
+        <!-- Cue Points Details Accordion / List -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Cue Point Evidence Breakdown</h4>
+          <div id="cueEvidenceList" class="space-y-2 text-xs"></div>
+        </div>
+      </div>
+
+      <!-- DUAL TRACK TRANSITION MATCHER -->
+      <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-md space-y-4 flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-zinc-200 tracking-wider uppercase flex items-center space-x-2">
+            <span>🎛️ Transition Match Advisor</span>
+          </h3>
+          <p class="text-[11px] text-zinc-400 mt-1">Select an incoming track from your library to evaluate mix compatibility.</p>
+
+          <div class="mt-4 space-y-3">
+            <div>
+              <label class="text-[10px] font-mono uppercase text-zinc-500">Incoming Track B</label>
+              <select id="matchTrackBSelect" class="w-full mt-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-400">
+                <option value="">-- Choose Library Track --</option>
+              </select>
+            </div>
+            <button id="runMatchBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-xs transition">
+              Evaluate Transition
+            </button>
+          </div>
+
+          <!-- Transition Match Result Box -->
+          <div id="transitionResultBox" class="mt-4 hidden bg-zinc-950/80 border border-zinc-800 rounded-xl p-3.5 space-y-2 text-xs font-mono">
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Compatibility:</span>
+              <span id="transScore" class="font-bold text-green-400 text-sm">--/100</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Harmonic Match:</span>
+              <span id="transHarm" class="font-bold text-indigo-400">--</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">BPM Delta:</span>
+              <span id="transBpm" class="text-yellow-400">--</span>
+            </div>
+            <div class="text-[11px] text-zinc-300 pt-2 border-t border-zinc-800" id="transExplanation"></div>
+          </div>
+        </div>
+
+        <div class="text-[10px] text-zinc-500 font-mono text-center pt-3 border-t border-zinc-800/80">
+          Powered by Camelot Key & Phrased Overlap Analysis
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- LIBRARY MODAL -->
+  <div id="libraryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-6">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">📚 Analyzed DJ Music Library</h3>
+        <button id="closeLibraryModalBtn" class="text-zinc-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div class="p-6 flex-1 overflow-y-auto">
+        <table class="w-full text-left text-xs font-mono">
+          <thead class="text-zinc-500 border-b border-zinc-800 pb-2">
+            <tr>
+              <th class="py-2">Title</th>
+              <th>Artist</th>
+              <th>BPM</th>
+              <th>Key</th>
+              <th>Genre</th>
+              <th>Duration</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="libraryTableBody" class="divide-y divide-zinc-800/50 text-zinc-300">
+            <!-- Injected by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

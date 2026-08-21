@@ -1,0 +1,34 @@
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Caches and temporary files
+.cache/
+cache/
+*.log
+*.sqlite
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large media files (keep code and tests lightweight in git)
+*.mp3
+*.wav
+*.flac
+*.aiff
+*.m4a
+!tests/fixtures/*.wav
+
