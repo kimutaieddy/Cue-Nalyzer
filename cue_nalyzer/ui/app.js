@@ -82,9 +82,26 @@ function setupEventListeners() {
   stopBtn.addEventListener("click", stopPlayback);
 
   document.addEventListener("keydown", (e) => {
-    if (e.code === "Space" && e.target.tagName !== "INPUT") {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+    if (e.code === "Space") {
       e.preventDefault();
       togglePlayPause();
+      return;
+    }
+
+    // Number keys 1-8 or letters A-H trigger Hot Cues
+    const key = e.key.toUpperCase();
+    const numMap = { "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8 };
+    const letterMap = { "A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6, "G": 7, "H": 8 };
+    const padIdx = numMap[key] || letterMap[key];
+
+    if (padIdx && currentAnalysis) {
+      const cue = currentAnalysis.cue_points.find((c) => c.hot_cue_index === padIdx);
+      if (cue) {
+        seekTo(cue.timestamp);
+        if (!isPlaying) togglePlayPause();
+      }
     }
   });
 

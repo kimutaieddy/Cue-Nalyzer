@@ -12,6 +12,7 @@ from cue_nalyzer.core.cache import AnalysisCache
 from cue_nalyzer.core.models import TrackAnalysis
 from cue_nalyzer.export.rekordbox_xml import RekordboxXMLExporter
 from cue_nalyzer.rekordbox.db_integrator import RekordboxDBIntegrator
+from cue_nalyzer.watcher.folder_watcher import WatchFolderManager
 
 router = APIRouter(prefix="/api")
 engine = AnalyzerEngine()
@@ -19,6 +20,8 @@ cache = AnalysisCache()
 batch_proc = BatchProcessor()
 rekordbox_exporter = RekordboxXMLExporter()
 rekordbox_db = RekordboxDBIntegrator()
+watcher = WatchFolderManager()
+watcher.start()
 
 
 class AnalyzePathRequest(BaseModel):
@@ -198,3 +201,43 @@ def export_rekordbox(track_hash: Optional[str] = None):
         media_type="application/xml",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# =========================================================================
+# BACKGROUND WATCH FOLDER ENDPOINTS
+# =========================================================================
+
+class WatchFolderRequest(BaseModel):
+    folder_path: str
+
+
+@router.get("/watcher/status")
+def get_watcher_status():
+    """Get active watch folders and running status."""
+    return {
+        "running": watcher._is_running,
+        "watch_folders": watcher.get_watch_folders(),
+    }
+
+
+@router.post("/watcher/add")
+def add_watch_folder(req: WatchFolderRequest):
+    """Add a directory to background auto-watch list."""
+    p = Path(req.folder_path).resolve()
+    if not p.is_dir():
+        raise HTTPException(status_code=400, detail="Invalid directory path")
+    watcher.add_watch_folder(str(p))
+    return {
+        "success": True,
+        "watch_folders": watcher.get_watch_folders(),
+    }
+
+
+@router.post("/watcher/remove")
+def remove_watch_folder(req: WatchFolderRequest):
+    """Remove a directory from background auto-watch list."""
+    watcher.remove_watch_folder(req.folder_path)
+    return {
+        "success": True,
+        "watch_folders": watcher.get_watch_folders(),
+    }
